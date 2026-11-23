@@ -21,8 +21,8 @@ for (const sub of ['textures', 'models']) {
 html = html.replace(/<script type="module"[^>]*src="[^"]*"><\/script>/g, '').replace(/<link rel="stylesheet"[^>]*href="\.\/assets\/[^"]*">/g, '')
   .replace(/<link rel="manifest"[^>]*>/, '').replace(/<link rel="icon"[^>]*>/, '').replace(/<link rel="modulepreload"[^>]*>/g, '');
 const safe = (s) => s.replace(/<\/script/gi, '<\\/script');
-html = html.replace('</head>', `<style>${css}</style>\n</head>`);
-html = html.replace('</body>', `<script>window.__MH_ASSETS=${safe(JSON.stringify(map))};</script>\n<script type="module">${safe(js)}</script>\n</body>`);
+html = html.replace('</head>', () => `<style>${css}</style>\n</head>`); // function replacer: '$' sequences in code must not be interpreted
+html = html.replace('</body>', () => `<script>window.__MH_ASSETS=${safe(JSON.stringify(map))};</script>\n<script type="module">${safe(js)}</script>\n</body>`);
 const dest = path.join(ROOT, 'MetroHorror.html');
 fs.writeFileSync(dest, html);
 console.log('written', dest, (fs.statSync(dest).size / 1048576).toFixed(1) + ' MB', Object.keys(map).length, 'assets');

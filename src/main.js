@@ -73,6 +73,7 @@ class App {
   }
 
   fatal(msg, reload = false) {
+    this.bootEl?.remove();
     const el = h('div', { class: 'overlay', style: { zIndex: 100 } }, h('div', { class: 'dialog' }, h('h3', {}, 'Ошибка'), h('p', {}, msg), h('button', { class: 'btn primary', onclick: () => location.reload() }, 'Перезапустить')));
     this.uiRoot.append(el);
     if (reload) setTimeout(() => location.reload(), 4000);

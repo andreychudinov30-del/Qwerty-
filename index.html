@@ -14,6 +14,14 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;600;700&family=Rubik:wght@400;500;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="./src/styles.css" />
+  <script>
+    // show startup errors on the loading screen (useful on phones without a console)
+    (function () {
+      function show(m) { var t = document.getElementById('boot-text'); if (t) { t.style.color = '#ff6a5a'; t.style.textTransform = 'none'; t.style.padding = '0 16px'; t.style.textAlign = 'center'; t.textContent = 'Ошибка запуска: ' + m; } }
+      window.addEventListener('error', function (e) { show(e.message || 'script error'); });
+      window.addEventListener('unhandledrejection', function (e) { show((e.reason && e.reason.message) || String(e.reason)); });
+    })();
+  </script>
 </head>
 <body>
   <div id="app">
