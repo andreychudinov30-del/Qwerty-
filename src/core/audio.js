@@ -3,7 +3,7 @@
 // dynamic ambience and tension music layers.
 import { getProfile } from './save.js';
 
-const SR = 44100;
+let SR = 44100; // replaced by the real AudioContext rate in init() (iOS runs at 48000 and rejects mismatched buffers)
 let ctx = null;
 
 // ---------------- DSP helpers ----------------
@@ -99,6 +99,7 @@ class AudioEngine {
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
     ctx = new AC({ latencyHint: 'interactive' });
+    SR = ctx.sampleRate || SR;
     this.ctx = ctx;
     this.master = ctx.createGain();
     this.comp = ctx.createDynamicsCompressor();
@@ -118,7 +119,7 @@ class AudioEngine {
     this.applyVolumes();
     this.ready = true;
     // unlock on iOS
-    const b = ctx.createBuffer(1, 1, SR); const s = ctx.createBufferSource(); s.buffer = b; s.connect(ctx.destination); s.start(0);
+    try { const b = ctx.createBuffer(1, 1, SR); const s = ctx.createBufferSource(); s.buffer = b; s.connect(ctx.destination); s.start(0); } catch (e) { /* ignore */ }
     document.addEventListener('visibilitychange', () => { if (!ctx) return; if (document.hidden) ctx.suspend(); else ctx.resume(); });
   }
 
@@ -184,7 +185,8 @@ class AudioEngine {
     if (!b) return null;
     if (this.voices.length > 48) { const v = this.voices.shift(); try { v.src.stop(); } catch (e) { /* ignore */ } }
     const src = ctx.createBufferSource();
-    src.buffer = b; src.loop = !!opts.loop;
+    try { src.buffer = b; } catch (e) { return null; }
+    src.loop = !!opts.loop;
     src.playbackRate.value = (opts.rate ?? 1) * (opts.jitter ? 1 + (Math.random() - 0.5) * opts.jitter : 1);
     const g = ctx.createGain(); g.gain.value = opts.volume ?? 1;
     const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 20000;
