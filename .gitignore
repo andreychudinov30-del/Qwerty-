@@ -1,0 +1,5 @@
+node_modules
+.asset-cache
+dist-ssr
+*.log
+.DS_Store
