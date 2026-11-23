@@ -51,7 +51,7 @@ export class Player {
     this.beam.position.copy(L.position);
     this.dust = new Dust(Math.floor(700 * (q.particles || 1)));
     // weak fill light so the immediate surroundings are never pitch black around the player
-    this.fill = new THREE.PointLight(0x8090a0, 0.6, 4.5, 2);
+    this.fill = new THREE.PointLight(0x9aaabb, 1.4, 7, 2);
     this.camera.add(this.fill);
     this.fill.position.set(0, 0.3, 0.2);
     this._buildViewmodel();
@@ -119,7 +119,7 @@ export class Player {
   eyeHeight() { return lerp(1.62, 1.0, this.crouchT); }
 
   setFlashlight(on, silent = false) {
-    if (!this.hasFlashlight) on = false;
+    if (!this.hasFlashlight) { if (on && !silent) this.game.hud?.toast('Фонарь разбит — его нет', 'warn'); on = false; }
     if (on && this.battery <= 0) { if (!silent) audio.play('click', { bus: 'ui', volume: 0.6 }); return; }
     if (on === this.flashOn) return;
     this.flashOn = on;
@@ -338,7 +338,7 @@ export class Player {
     const g = this.game;
     let target = 0;
     if (this.flashOn) {
-      target = 115;
+      target = 140;
       if (this.battery < 15) { // dying battery flicker
         const f = Math.sin(performance.now() * 0.02) * Math.sin(performance.now() * 0.0073);
         target *= this.battery / 15 * (f > 0.6 ? 0.15 : 1);
@@ -348,20 +348,20 @@ export class Player {
     this.flash.intensity = damp(this.flash.intensity, target, 25, dt);
     const on = this.flash.intensity > 2;
     this.beam.visible = on && g.engine.quality.volumetric;
-    if (this.beam.visible) { this.beam.material.uniforms.uStrength.value = 0.085 * (this.flash.intensity / 115); this.beam.material.uniforms.uTime.value += dt; }
-    if (this.lens) this.lens.material.color.setScalar(on ? 4 * (this.flash.intensity / 115) : 0);
+    if (this.beam.visible) { this.beam.material.uniforms.uStrength.value = 0.085 * (this.flash.intensity / 140); this.beam.material.uniforms.uTime.value += dt; }
+    if (this.lens) this.lens.material.color.setScalar(on ? 4 * (this.flash.intensity / 140) : 0);
     // dust
     const lp = new THREE.Vector3(); this.flash.getWorldPosition(lp);
     const ld = new THREE.Vector3(); this.camera.getWorldDirection(ld);
     this.dust.update(dt, this.camera, lp, ld, on ? Math.min(1, this.flash.intensity / 100) : 0, this.flash.angle * 0.95, innerHeight * 0.6);
     // fill light is very weak; slightly stronger when flashlight is off so the player isn't blind
-    this.fill.intensity = this.flashOn ? 0.35 : 0.55;
+    this.fill.intensity = this.flashOn ? 0.8 : 1.4;
   }
 
   flashlightRay() {
     const o = new THREE.Vector3(); this.camera.getWorldPosition(o);
     const d = new THREE.Vector3(); this.camera.getWorldDirection(d);
-    return { origin: o, dir: d, on: this.flash.intensity > 20, angle: this.flash.angle, range: 18 * (this.flash.intensity / 115) };
+    return { origin: o, dir: d, on: this.flash.intensity > 20, angle: this.flash.angle, range: 18 * (this.flash.intensity / 140) };
   }
 
   // is world point inside the flashlight cone (and in range)?

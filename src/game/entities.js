@@ -271,7 +271,6 @@ export class EntityManager {
       e.use = (p) => {
         p.addItem(def.item, def.count || 1);
         if (def.item === 'flashlight') { p.hasFlashlight = true; p.setFlashlight(true); }
-        if (def.item === 'battery' && p.battery < 30) { p.useItem('battery'); p.battery = 100; g.hud.toast('Батарейка установлена'); }
         if (def.item === 'gasmask') g.gasMask = true;
         audio.play('pickup', { bus: 'ui' });
         g.hud.toast(`Получено: ${ITEMS[def.item]?.name || def.item}${(def.count || 1) > 1 ? ' ×' + def.count : ''}`);

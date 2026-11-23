@@ -6,7 +6,7 @@ export const CH1 = [
   {
     id: 'c1m1', chapter: 1, num: 1, title: 'Пробуждение', desc: 'Очнуться на пустой станции «Заря» и понять, что произошло.', reward: 120,
     size: [46, 26],
-    env: { power: 'on', lampBroken: 0.45, lampFlicker: 0.3, fog: 0.04, flashlight: false, ambient: 0.5, director: { intensity: 0.6 } },
+    env: { power: 'on', lampBroken: 0.45, lampFlicker: 0.3, fog: 0.04, ambient: 0.5, director: { intensity: 0.6 } },
     map(m) {
       m.station(6, 8, 28, { pw: 6, name: 'ЗАРЯ' });
       m.rect(2, 10, 4, 6, '.');
@@ -41,7 +41,7 @@ export const CH1 = [
   {
     id: 'c1m2', chapter: 1, num: 2, title: 'Тьма', desc: 'Найти фонарик и батарейки в обесточенной станции.', reward: 140,
     size: [46, 26],
-    env: { power: 'off', emergency: true, fog: 0.05, flashlight: false, battery: 45, ambient: 0.25, director: { intensity: 1 } },
+    env: { power: 'off', emergency: true, fog: 0.05, battery: 45, ambient: 0.25, director: { intensity: 1 } },
     map(m) {
       m.station(8, 12, 26, { pw: 6, name: 'ЗАРЯ' });
       m.rect(2, 13, 6, 8, '.');
@@ -64,7 +64,7 @@ export const CH1 = [
     },
     start: 'start', startYaw: DIR.W,
     steps: [
-      { type: 'collect', item: 'flashlight', text: 'Найдите источник света', sub: 'Аварийные лампы ещё горят. В подсобках может быть фонарь.', hint: 'Служебные помещения за кассовым залом (север)', on: [['think', 'Темно... Нужно найти фонарь.', 3.5]],
+      { type: 'collect', item: 'flashlight', text: 'Найдите мощный фонарь и батарейки', sub: 'Ваш фонарик [F] светит тускло. Аварийные лампы ещё горят.', hint: 'Служебные помещения за кассовым залом (север)', on: [['think', 'Темно... Мой фонарик почти сел. Нужен запасной.', 3.5]],
         done: [['spawn', 'crawler', 'crA', { id: 'cr1', dormant: true, noFlee: true }], ['wait', 0.5], ['monsterPath', 'cr1', ['crB'], 6, [['despawn', 'cr1']]], ['scare', 'stinger'], ['think', 'Что это было?! Оно... убежало от света?', 4]] },
       { type: 'collect', item: 'battery', count: 2, text: 'Найдите батарейки (2)', sub: 'Заряда фонаря надолго не хватит', hint: 'Проверьте кассовый зал и вестибюль. [R] — заменить батарейку' },
       { type: 'reach', spot: 'gateSpot', r: 2.5, text: 'Проверьте выход на поверхность', on: [['wait', 2], ['scare', 'knock', 'gateSpot']],

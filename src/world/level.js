@@ -64,8 +64,8 @@ export class Level {
     scene.background = new THREE.Color(env.fogColor ?? 0x020304);
     scene.fog = new THREE.FogExp2(env.fogColor ?? 0x020304, env.fog ?? 0.045);
     scene.environment = makeEnvironment(this.engine.renderer);
-    scene.environmentIntensity = env.envIntensity ?? 0.22;
-    this.hemi = new THREE.HemisphereLight(env.skyColor ?? 0x3a4652, env.groundColor ?? 0x18130f, env.ambient ?? 0.32);
+    scene.environmentIntensity = env.envIntensity ?? 0.36;
+    this.hemi = new THREE.HemisphereLight(env.skyColor ?? 0x6b7d90, env.groundColor ?? 0x2a221b, 0.8 + (env.ambient ?? 0.32) * 1.5);
     scene.add(this.hemi);
     sharedUniforms.uWet.value = env.wet ?? 0.55;
     this.lamps.setPower(env.power || 'on');

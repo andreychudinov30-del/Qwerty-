@@ -8,11 +8,11 @@ import { stationNameTexture, posterTexture, graffitiTexture, bloodTexture, crack
 
 export const PROP_MODELS = [
   'painted_wooden_bench', 'metal_trash_can', 'trashbag', 'cardboard_box_01', 'Barrel_01', 'barrel_03', 'wooden_crate_01',
-  'old_military_crate', 'metal_jerrycan', 'power_box_01', 'utility_box_02', 'hanging_industrial_lamp', 'WetFloorSign_01',
-  'wheelchair_01', 'metal_office_desk', 'steel_frame_shelves_01', 'medical_box', 'old_bed_frame', 'propane_tank',
+  'old_military_crate', 'metal_jerrycan', 'power_box_01', 'utility_box_02', 'WetFloorSign_01',
+  'wheelchair_01', 'metal_office_desk', 'steel_frame_shelves_01', 'medical_box', 'propane_tank',
   'korean_fire_extinguisher_01', 'security_camera_01', 'metal_tool_chest', 'old_tyre', 'russian_food_cans_01', 'cement_bag',
   'chemistry_set', 'industrial_microscope', 'vintage_suitcase', 'old_military_compressor', 'drawer_cabinet', 'clipboard',
-  'binder_notebook', 'modular_airduct_rectangular_01', 'old_gas_mask', 'portable_generator', 'vintage_radio_transceiver', 'street_rat',
+  'binder_notebook', 'old_gas_mask', 'portable_generator', 'vintage_radio_transceiver', 'street_rat',
 ];
 
 const DIR4 = [[0, -1], [1, 0], [0, 1], [-1, 0]];

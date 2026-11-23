@@ -24,13 +24,12 @@ export const TEXTURES = [
 export const MODELS = [
   'Barrel_01', 'barrel_03', 'cardboard_box_01', 'old_military_crate', 'wooden_crate_01', 'metal_jerrycan',
   'portable_generator', 'power_box_01', 'utility_box_02', 'old_gas_mask', 'vintage_radio_transceiver',
-  'vintage_flashlight', 'hanging_industrial_lamp', 'mounted_fluorescent_lights', 'industrial_wall_lamp',
-  'metal_trash_can', 'trashbag', 'WetFloorSign_01', 'wheelchair_01', 'metal_office_desk',
-  'steel_frame_shelves_01', 'medical_box', 'old_bed_frame', 'propane_tank', 'korean_fire_extinguisher_01',
+  'vintage_flashlight', 'metal_trash_can', 'trashbag', 'WetFloorSign_01', 'wheelchair_01', 'metal_office_desk',
+  'steel_frame_shelves_01', 'medical_box', 'propane_tank', 'korean_fire_extinguisher_01',
   'security_camera_01', 'metal_tool_chest', 'old_tyre', 'russian_food_cans_01', 'street_rat',
   'cement_bag', 'chemistry_set', 'industrial_microscope', 'vintage_suitcase', 'old_military_compressor',
-  'rollershutter_door', 'large_iron_gate', 'drawer_cabinet', 'painted_wooden_bench', 'clipboard',
-  'modular_airduct_rectangular_01', 'pastic_torch_6v', 'binder_notebook', 'security_light', 'caged_hanging_light', 'ladder_sectioned_01'
+  'drawer_cabinet', 'painted_wooden_bench', 'clipboard',
+  'binder_notebook', 'ladder_sectioned_01'
 ];
 
 async function get(url, dest) {
