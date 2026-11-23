@@ -13,7 +13,7 @@ const GradeShader = {
     tDiffuse: { value: null },
     uTime: { value: 0 },
     uRes: { value: new THREE.Vector2(1, 1) },
-    uExposure: { value: 1.65 },
+    uExposure: { value: 1.8 },
     uSat: { value: 0.82 },
     uContrast: { value: 1.08 },
     uLift: { value: new THREE.Vector3(0.02, 0.022, 0.03) },

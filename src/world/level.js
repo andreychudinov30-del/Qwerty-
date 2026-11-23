@@ -61,11 +61,12 @@ export class Level {
     onProgress(0.6, 'Освещение');
     // environment
     const scene = this.scene;
-    scene.background = new THREE.Color(env.fogColor ?? 0x020304);
-    scene.fog = new THREE.FogExp2(env.fogColor ?? 0x020304, (env.fog ?? 0.045) * 0.7);
+    const fogCol = new THREE.Color(env.fogColor ?? 0x020304).lerp(new THREE.Color(0x0a0d12), 0.6);
+    scene.background = fogCol;
+    scene.fog = new THREE.FogExp2(fogCol, Math.min(env.fog ?? 0.045, 0.045) * 0.6);
     scene.environment = makeEnvironment(this.engine.renderer);
     scene.environmentIntensity = env.envIntensity ?? 0.5;
-    this.hemi = new THREE.HemisphereLight(env.skyColor ?? 0x6b7d90, env.groundColor ?? 0x2a221b, 2.4 + (env.ambient ?? 0.32) * 2.0);
+    this.hemi = new THREE.HemisphereLight(env.skyColor ?? 0x6b7d90, env.groundColor ?? 0x2a221b, 2.4 + Math.max(env.ambient ?? 0.32, 0.45) * 2.0);
     scene.add(this.hemi);
     sharedUniforms.uWet.value = env.wet ?? 0.55;
     this.lamps.setPower(env.power || 'on');

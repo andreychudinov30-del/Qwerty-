@@ -31,7 +31,7 @@ export async function decorate(builder, grid, rng, opts = {}) {
   const solid = (x, y) => builder.solid(x, y);
   const fl = (x, y) => builder.floorH[builder.idx(x, y)];
   const ce = (x, y) => builder.ceilH[builder.idx(x, y)];
-  const brokenP = opts.lampBroken ?? 0.25, flickerP = opts.lampFlicker ?? 0.2;
+  const brokenP = Math.min(opts.lampBroken ?? 0.25, 0.7) * 0.55, flickerP = (opts.lampFlicker ?? 0.2) * 0.8; // fewer dead lamps = more light everywhere
   const lampState = () => { const r = rng.next(); return r < brokenP ? 'broken' : r < brokenP + flickerP ? 'flicker' : r < brokenP + flickerP + 0.06 ? 'dying' : 'on'; };
   const chapter = opts.chapter || 1;
 
