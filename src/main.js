@@ -186,5 +186,5 @@ class App {
 
 const app = new App();
 app.boot().catch((e) => { console.error(e); window.__err = String(e.stack || e); app.fatal('Не удалось запустить игру: ' + e.message); });
-if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('./sw.js').catch(() => {});
+if (!window.__MH_ASSETS && 'serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('./sw.js').catch(() => {});
 void saveProfile;

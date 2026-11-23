@@ -5,7 +5,7 @@ import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.j
 import { mulberry32 } from './util.js';
 
 const BASE = (import.meta.env && import.meta.env.BASE_URL) || './';
-export const assetUrl = (p) => BASE + 'assets/' + p;
+export const assetUrl = (p) => (typeof window !== 'undefined' && window.__MH_ASSETS && window.__MH_ASSETS[p]) || BASE + 'assets/' + p;
 
 export const manager = new THREE.LoadingManager();
 const texLoader = new THREE.TextureLoader(manager);
