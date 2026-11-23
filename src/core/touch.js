@@ -35,7 +35,6 @@ export class TouchControls {
     this.joyZone = h('div', { class: 'joy-zone' });
     this.lookZone = h('div', { class: 'look-zone' });
     this.joyEl = h('div', { class: 'joy' }, h('i'));
-    this.joyEl.style.display = 'none';
     this.el.append(this.lookZone, this.joyZone, this.joyEl);
     this.pauseBtn = h('button', { class: 'tpause', onpointerdown: (e) => { e.preventDefault(); input.pressed.add('pause'); bus.emit('action', 'pause'); } }, 'II');
     this.el.append(this.pauseBtn);
@@ -96,49 +95,59 @@ export class TouchControls {
     this.buttons.crouch?.classList.toggle('on', !!input.crouch);
   }
 
+  // static joystick: the base stays where the layout puts it; only touches near it steer
+  placeJoystick() {
+    const L = this.layout();
+    const c = L.joystick || DEFAULT_TOUCH_LAYOUT.joystick;
+    const size = (c.size || 130) * (L.scale || 1);
+    const el = this.joyEl;
+    el.style.display = 'block';
+    el.style.left = c.x + '%'; el.style.top = c.y + '%';
+    el.style.width = el.style.height = size + 'px';
+    const k = el.firstChild; const ks = Math.round(size * 0.42);
+    k.style.width = k.style.height = ks + 'px'; k.style.margin = -ks / 2 + 'px';
+    this.moveKnob(0, 0);
+    // the touch-capture area is just a square around the stick, so the rest of the screen stays free for looking
+    const S = Math.round(size * 1.9), z = this.joyZone.style;
+    z.left = `calc(${c.x}% - ${S / 2}px)`; z.top = `calc(${c.y}% - ${S / 2}px)`; z.width = z.height = S + 'px'; z.bottom = 'auto';
+  }
   bindJoystick() {
     const zone = this.joyZone;
-    const R = () => (this.layout().joystick?.size || 130) * (this.layout().scale || 1) / 2;
+    this.placeJoystick();
+    const geom = () => { const r = this.joyEl.getBoundingClientRect(); return { cx: r.left + r.width / 2, cy: r.top + r.height / 2, R: r.width / 2 }; };
     zone.addEventListener('pointerdown', (e) => {
       if (this.joy) return;
+      const g = geom();
+      if (Math.hypot(e.clientX - g.cx, e.clientY - g.cy) > g.R * 1.9) return; // too far from the stick: ignore
       e.preventDefault();
       try { zone.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
       input.touchActive = true;
-      this.joy = { id: e.pointerId, cx: e.clientX, cy: e.clientY };
-      const r = R();
-      this.joyEl.style.display = 'block';
-      this.joyEl.style.width = this.joyEl.style.height = r * 2 + 'px';
-      this.joyEl.style.left = e.clientX + 'px';
-      this.joyEl.style.top = e.clientY + 'px';
-      this.moveKnob(0, 0);
+      this.joy = { id: e.pointerId };
+      this.steer(e, g);
     });
     zone.addEventListener('pointermove', (e) => {
       if (!this.joy || e.pointerId !== this.joy.id) return;
       e.preventDefault();
-      const r = R();
-      let dx = e.clientX - this.joy.cx, dy = e.clientY - this.joy.cy;
-      const d = Math.hypot(dx, dy);
-      if (d > r) {
-        // drag the base along (floating joystick)
-        const k = (d - r) / d;
-        this.joy.cx += dx * k; this.joy.cy += dy * k;
-        this.joyEl.style.left = this.joy.cx + 'px'; this.joyEl.style.top = this.joy.cy + 'px';
-        dx = e.clientX - this.joy.cx; dy = e.clientY - this.joy.cy;
-      }
-      this.moveKnob(dx, dy);
-      let mx = dx / r, my = -dy / r;
-      const m = Math.hypot(mx, my);
-      if (m < 0.12) { mx = 0; my = 0; } else { const k = Math.min(1, (m - 0.12) / 0.88) / m; mx *= k; my *= k; }
-      input.move.x = mx; input.move.y = my;
+      this.steer(e, geom());
     });
     const end = (e) => {
       if (!this.joy || e.pointerId !== this.joy.id) return;
       this.joy = null;
       input.move.x = 0; input.move.y = 0;
-      this.joyEl.style.display = 'none';
+      this.moveKnob(0, 0);
     };
     zone.addEventListener('pointerup', end);
     zone.addEventListener('pointercancel', end);
+  }
+  steer(e, g) {
+    let dx = e.clientX - g.cx, dy = e.clientY - g.cy;
+    const d = Math.hypot(dx, dy);
+    if (d > g.R) { dx *= g.R / d; dy *= g.R / d; }
+    this.moveKnob(dx, dy);
+    let mx = dx / g.R, my = -dy / g.R;
+    const m = Math.hypot(mx, my);
+    if (m < 0.12) { mx = 0; my = 0; } else { const k = Math.min(1, (m - 0.12) / 0.88) / m; mx *= k; my *= k; }
+    input.move.x = mx; input.move.y = my;
   }
   moveKnob(dx, dy) { const k = this.joyEl.firstChild; k.style.transform = `translate(${dx}px, ${dy}px)`; }
 

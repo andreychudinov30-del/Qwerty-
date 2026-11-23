@@ -77,7 +77,7 @@ export class LampSystem {
       pos: new THREE.Vector3(def.x, def.y, def.z),
       lightPos: new THREE.Vector3(def.x, def.y + (T.lightOffsetY || 0), def.z),
       color: new THREE.Color(def.color ?? T.color),
-      intensity: (def.intensity ?? T.intensity) * 1.7,
+      intensity: (def.intensity ?? T.intensity) * 1.5,
       range: def.range ?? T.range,
       circuit: def.circuit || 'main',
       state: def.state || 'on', // on | off | broken | flicker | dying | pulse
