@@ -51,7 +51,7 @@ export class Player {
     this.beam.position.copy(L.position);
     this.dust = new Dust(Math.floor(700 * (q.particles || 1)));
     // weak fill light so the immediate surroundings are never pitch black around the player
-    this.fill = new THREE.PointLight(0x9aaabb, 1.4, 7, 2);
+    this.fill = new THREE.PointLight(0xa8b8c8, 2.6, 10, 2);
     this.camera.add(this.fill);
     this.fill.position.set(0, 0.3, 0.2);
     this._buildViewmodel();
@@ -233,7 +233,12 @@ export class Player {
     // ---- flashlight ----
     if (input.pressed.has('flashlight') && !this.frozen) this.setFlashlight(!this.flashOn);
     if (this.flashOn) { this.battery = Math.max(0, this.battery - this.drainRate * dt * (g.mission?.env?.batteryDrain ?? 1)); if (this.battery <= 0) { this.setFlashlight(false, true); g.hud?.toast('Фонарь разрядился', 'warn'); } }
-    if (input.pressed.has('reload') && this.battery < 95 && this.useItem('battery')) { this.battery = 100; audio.play('click', { bus: 'ui' }); g.hud?.toast('Батарейка заменена'); }
+    if (input.pressed.has('reload')) {
+      if (!this.hasFlashlight) g.hud?.toast('Фонаря нет', 'warn');
+      else if (this.battery >= 95) g.hud?.toast('Фонарь заряжен');
+      else if (this.useItem('battery')) { this.battery = 100; audio.play('click', { bus: 'ui' }); g.hud?.toast('Батарейка заменена'); }
+      else g.hud?.toast('Нет запасных батареек', 'warn');
+    }
     // ---- medkit ----
     if (input.pressed.has('item') && this.health < 100) { if (this.useItem('medkit')) { this.heal(55); audio.play('heal', { bus: 'ui' }); g.hud?.toast('Аптечка использована (+55)'); } else g.hud?.toast('Нет аптечки', 'warn'); }
     this.updateCamera(dt);
@@ -355,7 +360,7 @@ export class Player {
     const ld = new THREE.Vector3(); this.camera.getWorldDirection(ld);
     this.dust.update(dt, this.camera, lp, ld, on ? Math.min(1, this.flash.intensity / 100) : 0, this.flash.angle * 0.95, innerHeight * 0.6);
     // fill light is very weak; slightly stronger when flashlight is off so the player isn't blind
-    this.fill.intensity = this.flashOn ? 0.8 : 1.4;
+    this.fill.intensity = this.flashOn ? 1.4 : 2.6;
   }
 
   flashlightRay() {

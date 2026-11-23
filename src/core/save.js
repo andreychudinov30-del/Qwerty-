@@ -20,6 +20,7 @@ export const DEFAULT_TOUCH_LAYOUT = {
   jump: { x: 94, y: 90, size: 56 },
   throw: { x: 62, y: 90, size: 50 },
   item: { x: 60, y: 74, size: 50 },
+  reload: { x: 50, y: 88, size: 48 },
   joystick: { x: 16, y: 72, size: 130 },
   opacity: 0.85,
   scale: 1,

@@ -12,6 +12,7 @@ const BUTTONS = [
   { id: 'jump', label: 'ЛАЗ', mode: 'tap' },
   { id: 'throw', label: 'БРОСОК', mode: 'tap' },
   { id: 'item', label: 'АПТЕЧКА', mode: 'tap' },
+  { id: 'reload', label: 'БАТАРЕЯ', mode: 'tap' },
 ];
 
 export class TouchControls {

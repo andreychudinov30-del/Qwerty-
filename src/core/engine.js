@@ -13,10 +13,10 @@ const GradeShader = {
     tDiffuse: { value: null },
     uTime: { value: 0 },
     uRes: { value: new THREE.Vector2(1, 1) },
-    uExposure: { value: 1.3 },
+    uExposure: { value: 1.65 },
     uSat: { value: 0.82 },
     uContrast: { value: 1.08 },
-    uLift: { value: new THREE.Vector3(0.012, 0.014, 0.02) },
+    uLift: { value: new THREE.Vector3(0.02, 0.022, 0.03) },
     uGain: { value: new THREE.Vector3(1.0, 0.97, 0.92) },
     uVignette: { value: 0.45 },
     uGrain: { value: 0.045 },
@@ -57,6 +57,7 @@ const GradeShader = {
       col.g = texture2D(tDiffuse, uv).g;
       col.b = texture2D(tDiffuse, uv - d*ab).b;
       col *= uExposure * 1.25;
+      col = pow(max(col, vec3(0.0)), vec3(0.78)); // lift shadows (darks) without blowing out highlights
       col = aces(col);
       float l = dot(col, vec3(0.2126, 0.7152, 0.0722));
       col = mix(vec3(l), col, uSat - uFear*0.25);
