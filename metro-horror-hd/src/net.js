@@ -185,7 +185,7 @@ function panelNet(k,keep){const c=$('pc');netStart();const me=sv.net&&sv.net.id,
   else h+='<h3>Миссия</h3><p>'+(NET.mis+1)+'. '+esc(mn.n)+'</p><p>Ждём, пока хост начнёт…</p>';
   h+='<h3>Пригласить друга</h3>'+(fr.length?fr.map(f=>'<div class="row"><span style="flex:2">'+esc(f.name)+' <small>'+(STN[f.status]||'')+'</small></span><button data-a="inv" data-id="'+esc(f.id)+'" style="flex:0 0 auto">Пригласить</button></div>').join(''):'<p>Нет друзей в сети.</p>')+
    '<p id="om">'+esc(NET.omsg||'')+'</p><button data-a="leave">Покинуть комнату</button>'}
- c.innerHTML=h+'<button data-x="1">Назад</button>';c.dataset.owner=k;
+ const full=h+'<button data-x="1">Назад</button>';if(keep&&c.dataset.owner===k&&c.dataset.sig===full)return;c.dataset.sig=full;c.innerHTML=full;c.dataset.owner=k;
  if(keep){for(const id in keepV){const e=$(id);if(e)e.value=keepV[id]}if(af){const e=$(af);if(e){e.focus();try{e.setSelectionRange(ss,ss)}catch(x){}}}}
  c.onclick=async e=>{const b=e.target.closest('button');if(!b||b.disabled)return;const d=b.dataset;if(d.x){show('pn',0);return}const A=d.a;
   const say=m=>{if(k==='f')NET.fmsg=m;else NET.omsg=m;panelNet(k,1)};
