@@ -3,13 +3,12 @@
    ===================================================================== */
 const S_ENV={};let MG=null,PHM=null,fl=null,flCone=null,hemi=null,dust=null,SP=null;
 let mode='load',t=0,mi=0,md=null,si=0,pt=0,evT=25,bo=1,boT=0,uiOpen=0,cur=null,inv=null,code='',noiseQ=[],lockIn=0,phan={t:6,on:0,life:0,look:0},stepT=0,endLock=0;
-const P={x:0,z:0,yaw:0,pit:0,h:1.65,hp:100,st:100,bat:100,san:100,light:true,hide:0,crouch:0,tired:0,moving:0,run:0,bob:0,ls:0,shk:0,lk:null,wet:0,uvT:0,hold:0};
+const P={dead:0,specd:0,x:0,z:0,yaw:0,pit:0,h:1.65,hp:100,st:100,bat:100,san:100,light:true,hide:0,crouch:0,tired:0,moving:0,run:0,bob:0,ls:0,shk:0,lk:null,wet:0,uvT:0,hold:0};
 const MO={x:0,z:0,yaw:0,st:'idle',t0:10,cool:0,lost:0,path:[],pT:0,gk:-1,lx:0,lz:0,sw:0,n:0,flee:0,stalk:0,look:0,unseen:0,stuck:0,turn:0,ts:1,chk:0,ph:0,hb:0,ls:0,lunge:0,scrT:0,clkT:3,crawl:0,saw:0,sp:0,huntT:0,lk:null,lkT:0};
-let K={},T={x:0,y:0,run:0,act:0,j:null,l:null,ox:0,oy:0,lx:0,ly:0};
+let PT=P;let K={},T={x:0,y:0,run:0,act:0,j:null,l:null,ox:0,oy:0,lx:0,ly:0};
 const show=(id,v)=>$(id).classList.toggle('hide',!v);
 let mt=0;function msg(s){const m=$('msg');m.textContent=s;m.style.opacity=1;clearTimeout(mt);mt=setTimeout(()=>m.style.opacity=0,3800)}
 let stt=0;function sub(s,d){const m=$('sub');m.textContent=s;m.style.opacity=1;clearTimeout(stt);stt=setTimeout(()=>m.style.opacity=0,d||6500)}
-function noiseAt(x,z,r){noiseQ.push([x,z,r])}
 
 /* ---------- A* on the cell grid ---------- */
 function walk(i,j){return i>=0&&j>=0&&i<LV.W&&j<LV.H&&LV.g[j*LV.W+i]&&!LV.nb[j*LV.W+i]}
@@ -40,8 +39,8 @@ function itemMesh(k){const c=(ITEMS[k]||{}).c||0xffe9b0;let m;
  else if(k==='doc'){m=modelMesh('clipboard',.8)||new THREE.Mesh(new THREE.BoxGeometry(.22,.02,.3),new THREE.MeshStandardMaterial({color:0xd8d0b8}))}
  else m=new THREE.Mesh(new THREE.BoxGeometry(.2,.04,.28),new THREE.MeshStandardMaterial({color:0x6a4a2a}));
  m.traverse(o=>{if(o.isMesh)o.castShadow=true});return m}
-function addItem(k,p,lab,fn,obj){const y=k==='doc'||k==='md'?.02:.95,m=itemMesh(k);m.position.set(p.x,y,p.z);LV.root.add(m);const s=gs((ITEMS[k]||{}).c||(k==='bt'?0x39d96b:k==='md'?0xff5a4a:k==='doc'?0xffe9b0:0xffe9b0),k==='doc'?.6:.8,.55);s.position.set(p.x,y+.08,p.z);LV.root.add(s);
- const o={x:p.x,z:p.z,y,r:1.9,m,s,bob:k!=='doc'&&k!=='md',l:()=>lab,f:()=>{o.off=1;m.visible=false;s.visible=false;SFX.pick();fn()},obj};I.push(o);if(obj)OB.push(o);return o}
+function addItem(k,p,lab,fn,obj,lid){const y=k==='doc'||k==='md'?.02:.95,m=itemMesh(k);m.position.set(p.x,y,p.z);LV.root.add(m);const s=gs((ITEMS[k]||{}).c||(k==='bt'?0x39d96b:k==='md'?0xff5a4a:k==='doc'?0xffe9b0:0xffe9b0),k==='doc'?.6:.8,.55);s.position.set(p.x,y+.08,p.z);LV.root.add(s);
+ const o={x:p.x,z:p.z,y,r:1.9,m,s,bob:k!=='doc'&&k!=='md',l:()=>lab,f:()=>{o.off=1;m.visible=false;s.visible=false;SFX.pick();netI(o);fn()},obj};regI(o,lid,!!lid);if(obj)OB.push(o);return o}
 function wallThing(p,build,y){const g=new THREE.Group;g.position.set(p.x,y||0,p.z);g.rotation.y=p.ry;build(g);LV.root.add(g);return g}
 function addObj(kind,p,o){/* p: position from spotPick */const A=new Acc;let g;
  if(kind==='panel'){g=wallThing(p,G=>{const m=modelMesh('power_box_01');if(m){const s=.9/Math.max(MOD.power_box_01.sz.y,.01);m.scale.setScalar(s);m.position.set(0,.7,MOD.power_box_01.sz.z*s/2);G.add(m)}else G.add(new THREE.Mesh(boxGeo(.8,1,.3),M.door))});
@@ -63,27 +62,28 @@ function addObj(kind,p,o){/* p: position from spotPick */const A=new Acc;let g;
  o.g=g;return o}
 
 /* ---------- mission start ---------- */
-function startMission(i){audio();mi=i;md=Object.assign({},MS[i],{steps:MS[i].steps.map(q=>Object.assign({},q))});clearLevel();used=[];OB=[];exitO=null;annexDoor=null;
- const L=buildLevel(md);code=String(1000+(RNG(md.seed*13+Date.now()%1000)()*9000|0));
- const sx=wx(L.start[0]),sz=wx(L.start[1]);Object.assign(P,{x:sx,z:sz,yaw:0,pit:0,h:1.65,hp:100,st:100,bat:100,san:100,light:true,hide:0,crouch:0,tired:0,shk:0,uvT:0,hold:0,wet:0});
- P.yaw=Math.atan2(-(wx(L.rooms[0].cx|0)-sx)||-.001,-(wx(L.rooms[0].cy|0)-sz)||-1);
- inv={bat:1,med:1,it:{},key:0,need:0,got:{}};pt=0;evT=25;bo=1;boT=0;si=-1;phan={t:8,on:0,life:0,look:0};
+function startMission(i,opts){audio();opts=opts||{};const nt=!!(opts.net&&NET.ch);NET.on=nt?1:0;NET.ingame=nt?1:0;NET.cl=nt&&!NET.host?1:0;NET.seed=nt?(opts.seed|0):null;NET.paused=0;IM={};idc=0;RNGF=Math.random;if(!nt&&NET.room)roomLeave();if(nt){netReset();RNGF=RNG(NET.seed>>>0)}$('pb').classList.add('hide');mi=i;md=Object.assign({},MS[i],{steps:MS[i].steps.map(q=>Object.assign({},q))});clearLevel();used=[];OB=[];exitO=null;annexDoor=null;
+ const L=buildLevel(md);code=String(1000+(RNG(md.seed*13+(nt?NET.seed%1000:Date.now()%1000))()*9000|0));
+ const sx=wx(L.start[0]),sz=wx(L.start[1]);Object.assign(P,{x:sx,z:sz,yaw:0,pit:0,h:1.65,hp:100,st:100,bat:100,san:100,light:true,hide:0,crouch:0,tired:0,shk:0,uvT:0,hold:0,wet:0,dead:0,specd:0,lk:null});
+ P.yaw=Math.atan2(-(wx(L.rooms[0].cx|0)-sx)||-.001,-(wx(L.rooms[0].cy|0)-sz)||-1);if(nt)P.x+=NET.host?-.5:.5;
+ inv={bat:1,med:1,it:{},key:0,need:0,got:{},uv:i>16?1:0};pt=0;evT=25;bo=1;boT=0;si=-1;phan={t:8,on:0,life:0,look:0};
  if(md.dark)LP.lamps.forEach(l=>{if(rand()<.75){l.on=0}});
  /* annex door */
  if(L.annex){const a=L.annex,dx=a.d[0],dy=a.d[1],bx=(a.fx+.5+dx*.5)*CS,bz=(a.fy+.5+dy*.5)*CS,g=new THREE.Group;g.position.set(bx,0,bz);g.rotation.y=Math.atan2(dx,dy);
   const ac=new Acc;ac.box('door',-1.6,2.6,-.15,1.6,3.2,.15).box('door',-1.6,0,-.15,-.75,2.6,.15).box('door',.75,0,-.15,1.6,2.6,.15);ac.build(g);const lf=new THREE.Mesh(boxGeo(1.5,2.6,.08),M.door);lf.position.set(0,1.3,0);lf.castShadow=true;g.add(lf);
   const led=new THREE.Mesh(new THREE.BoxGeometry(.12,.12,.04),new THREE.MeshBasicMaterial({color:0xff2211}));led.position.set(1.05,1.4,.17);g.add(led);L.root.add(g);
   const col=addCol(Math.min(bx,bx+dx*.3)-(dy?1.6:.2),Math.min(bz,bz+dy*.3)-(dx?1.6:.2),Math.max(bx,bx+dx*.3)+(dy?1.6:.2),Math.max(bz,bz+dy*.3)+(dx?1.6:.2),3,1);
-  annexDoor={g,lf,led,col,open:0,x:bx-dx*.8,z:bz-dy*.8};I.push({x:annexDoor.x,z:annexDoor.z,r:2,l:()=>annexDoor.open?'':(inv.key?'Открыть ключ-картой':'Заперто. Нужна ключ-карта'),f:()=>{if(inv.key)openAnnex();else{msg('Заперто. Нужна ключ-карта');SFX.err()}}})}
+  annexDoor={g,lf,led,col,open:0,x:bx-dx*.8,z:bz-dy*.8};regI({x:annexDoor.x,z:annexDoor.z,r:2,l:()=>annexDoor.open?'':(inv.key?'Открыть ключ-картой':'Заперто. Нужна ключ-карта'),f:()=>{if(inv.key)openAnnex();else{msg('Заперто. Нужна ключ-карта');SFX.err()}}})}
  /* exit door */
  placeExit();
  /* pickups: batteries, medkits, lockers, lore document */
  const nb=2+(rand()*2|0),nm=1+(rand()*2|0);for(let k=0;k<nb;k++)addItem('bt',spotPick({sp:2}),'Взять батарею',()=>{inv.bat++;msg('Запасная батарея для фонаря')});
  for(let k=0;k<nm;k++)addItem('md',spotPick({sp:2}),'Взять аптечку',()=>{inv.med++;msg('Аптечка')});
  const nl=3+(rand()*3|0);for(let k=0;k<nl;k++)locker(spotPick({wall:1,off:.42,sp:2}));
- if(md.doc&&!sv.lore.includes(i))addItem('doc',spotPick({lo:.3,sp:3}),'Прочитать: '+md.doc[0],()=>{sv.lore.push(i);put();note(md.doc[0],md.doc[1]+'\n\n(Документ '+sv.lore.length+'/24)')});
+ if(md.doc&&!sv.lore.includes(i))addItem('doc',lorePick(),'Прочитать: '+md.doc[0],()=>{sv.lore.push(i);put();note(md.doc[0],md.doc[1]+'\n\n(Документ '+sv.lore.length+'/24)')},0,'lore');
+ RNGF=Math.random;
  /* monster */
- Object.assign(MO,{st:'idle',t0:md.mon.d,cool:0,lost:0,path:[],pT:0,gk:-1,flee:0,stalk:0,look:0,unseen:0,saw:0,huntT:0,lk:null,lkT:0,scrT:0,crawl:0,lunge:0});MG.visible=false;spawnFar(1);
+ Object.assign(MO,{st:'idle',t0:md.mon.d,cool:0,lost:0,path:[],pT:0,gk:-1,flee:0,stalk:0,look:0,unseen:0,saw:0,huntT:0,lk:null,lkT:0,scrT:0,crawl:0,lunge:0,sp:0});MG.visible=false;if(!NET.cl)spawnFar(1);
  /* camera/flashlight to first person */
  cam.add(fl);fl.position.set(.2,-.2,-.45);fl.target.position.set(.05,-.25,-8);cam.add(fl.target);fl.angle=.52;fl.penumbra=.55;fl.distance=34;HAND.visible=true;if(hum)hum.visible=false;
  cam.fov=72;cam.updateProjectionMatrix();S.fog.density=md.dark?.042:.032;
@@ -92,10 +92,12 @@ function startMission(i){audio();mi=i;md=Object.assign({},MS[i],{steps:MS[i].ste
  R.compile(S,cam);
  if(i%6===0&&!sv.done[i])sub('Глава '+(i/6+1)+'. «'+CH[i/6|0]+'». '+CHT[i/6|0],9000);
  msg(md.intro);nextStep()}
+function lorePick(){const c=LV.spots.filter(s=>!(LV.annex&&s[2]===LV.annex.room.i)),r=RNG(md.seed+5)(),s=c[(r*c.length)|0];return{x:wx(s[0])+.3,z:wx(s[1])-.3}}
+function shuf(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=rand()*(i+1)|0;const t2=a[i];a[i]=a[j];a[j]=t2}return a}
 function locker(p){const m=lockerMesh();m.position.set(p.x,0,p.z);m.rotation.y=p.ry;LV.root.add(m);const ex=p.x-(p.d?p.d[0]:0)*1.1,ez=p.z-(p.d?p.d[1]:0)*1.1;addCol(p.x-.45,p.z-.45,p.x+.45,p.z+.45,2,0);
  const o={x:ex,z:ez,lx:p.x,lz:p.z,r:1.5,l:()=>P.hide?'Выйти из шкафа':'Спрятаться в шкаф',f:()=>{if(P.hide){P.hide=0;P.x=o.x;P.z=o.z;noiseAt(P.x,P.z,5);SFX.door()}else{P.hide=1;P.lk=o;P.crouch=0;P.yaw=Math.atan2(o.x-o.lx,o.z-o.lz);P.pit=0;noiseAt(P.x,P.z,4);if(MO.st==='chase'&&MG.visible&&Math.hypot(MO.x-P.x,MO.z-P.z)<16&&los(MO.x,MO.z,P.x,P.z))MO.saw=1}}};
- I.push(o);LV.lockers.push(o)}
-function openAnnex(){if(!annexDoor||annexDoor.open)return;annexDoor.open=1;annexDoor.col[5]=-1;annexDoor.led.material.color.setHex(0x22ff55);SFX.door();noiseAt(annexDoor.x,annexDoor.z,14);msg('Замок открыт')}
+ regI(o);LV.lockers.push(o)}
+function openAnnex(){if(!annexDoor||annexDoor.open)return;annexDoor.open=1;annexDoor.col[5]=-1;annexDoor.led.material.color.setHex(0x22ff55);SFX.door();noiseAt(annexDoor.x,annexDoor.z,14);msg('Замок открыт');if(!NET.remote&&NET.on)nsend('a',{an:1})}
 function placeExit(far){const L=LV;let best=null,bd=-1;const cand=L.spots.filter(s=>(!L.annex||s[2]!==L.annex.room.i)&&[[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dy])=>!L.g[(s[1]+dy)*L.W+s[0]+dx]));
  for(const s of cand){let d=L.dist[s[0]+s[1]*L.W];if(far)d=Math.hypot(wx(s[0])-P.x,wx(s[1])-P.z)+rand()*6;if(d>bd&&!(exitO&&exitO.i===s[0]&&exitO.j===s[1])){bd=d;best=s}}
  const ds=[[1,0],[-1,0],[0,1],[0,-1]].filter(([dx,dy])=>!L.g[(best[1]+dy)*L.W+best[0]+dx]),d=ds[0],x=wx(best[0])+d[0]*(CS/2),z=wx(best[1])+d[1]*(CS/2),g=new THREE.Group;
@@ -107,74 +109,79 @@ function placeExit(far){const L=LV;let best=null,bd=-1;const cand=L.spots.filter
 
 /* ---------- steps ---------- */
 const stp=()=>md.steps[si];
-function nextStep(){si++;stepT=0;if(si>=md.steps.length){finish(1);return}const s=stp();s.c=0;s.p=0;
+function nextStep(){if(NET.seed!=null){const o=RNGF;RNGF=RNG((NET.seed>>>0)+(si+1)*7919);try{nextStepI()}finally{RNGF=o}}else nextStepI()}
+function nextStepI(){PT=tgt();si++;stepT=0;if(si>=md.steps.length){finish(1);return}const s=stp();s.c=0;s.p=0;
  const T2=(s.t||'').replace('{CODE}',code);
  if(s.k==='get'){s.c=0;for(let n=0;n<s.n;n++){const p=spotPick({lo:s.A?0:.25+n*.12,hi:1,A:s.A,sp:4});addItem(s.it,p,'Взять '+ITEMS[s.it].n,()=>{inv.it[s.it]=(inv.it[s.it]||0)+1;s.c++;msg(cap(ITEMS[s.it].n)+' ('+s.c+'/'+s.n+')');if(s.c>=s.n)done()},1)}}
  else if(s.k==='use'||s.k==='ride'){const o=addObj(s.o,spotPick({wall:1,off:s.o==='panel'?.05:.5,lo:.35,sp:3}),{n:(md.steps[si-1]||{}).n||3});o.x=o.g.position.x;o.z=o.g.position.z;
   if(o.leds)o.leds.forEach(l=>l.material.color.setHex(0xffaa22));const x=o.x+Math.sin(o.g.rotation.y)*.9,z=o.z+Math.cos(o.g.rotation.y)*.9;
-  const it={x,z,r:2,obj:1,l:()=>s.k==='ride'?'Отправляемся!':s.t,f:()=>{if(o.leds)o.leds.forEach(l=>l.material.color.setHex(0x33ff66));SFX.ok();it.off=1;done()}};I.push(it);OB.push(it);
+  const it={x,z,r:2,obj:1,l:()=>s.k==='ride'?'Отправляемся!':s.t,f:()=>{if(o.leds)o.leds.forEach(l=>l.material.color.setHex(0x33ff66));SFX.ok();it.off=1;netI(it);done()}};regI(it);OB.push(it);
   const prev=md.steps.find(q=>q.k==='use'&&q.o===s.o&&q!==s);if(s.k==='ride'&&s.o==='cab'){}}
  else if(s.k==='code'){const o=addObj('term',spotPick({wall:1,off:.5,lo:.3,sp:3}),{});const x=o.g.position.x+Math.sin(o.g.rotation.y)*.9,z=o.g.position.z+Math.cos(o.g.rotation.y)*.9;
-  const it={x,z,r:2,obj:1,l:()=>'Ввести код',f:()=>keypad(ok=>{if(ok){it.off=1;SFX.ok();done()}else{SFX.err();noiseAt(P.x,P.z,26);msg('Неверный код. Сигнал тревоги разнёсся по станции…')}})};I.push(it);OB.push(it)}
- else if(s.k==='seq'){const base=spotPick({wall:1,off:.1,lo:.3,sp:3}),syms=[0,1,2,3,4].sort(()=>rand()-.5).slice(0,s.n),order=syms.slice().sort(()=>rand()-.5);s.order=order;s.pos=0;s.lv=[];
+  const it={x,z,r:2,obj:1,l:()=>'Ввести код',f:()=>keypad(ok=>{if(ok){it.off=1;SFX.ok();netI(it);done()}else{SFX.err();noiseAt(P.x,P.z,26);msg('Неверный код. Сигнал тревоги разнёсся по станции…')}}),rf:()=>{it.off=1;SFX.ok();done()}};regI(it);OB.push(it)}
+ else if(s.k==='seq'){const base=spotPick({wall:1,off:.1,lo:.3,sp:3}),syms=shuf([0,1,2,3,4]).slice(0,s.n),order=shuf(syms);s.order=order;s.pos=0;s.lv=[];
   const SYM=['◯⟋','△','✳','◎','✕'];const room=LV.rid[base.j*LV.W+base.i];
   for(let n=0;n<s.n;n++){const p=n?spotPick({wall:1,off:.1,sp:1,lo:0}):base;const ob=addObj('lever',p,{sym:syms[n]});ob.sym=syms[n];const x=p.x+Math.sin(p.ry)*.8,z=p.z+Math.cos(p.ry)*.8;
-   const it={x,z,r:1.6,obj:1,l:()=>ob.on?'':'Повернуть рубильник',f:()=>{SFX.lever();ob.on=1;ob.arm.rotation.x=-.7;noiseAt(P.x,P.z,12);
-    if(order[s.pos]===ob.sym){s.pos++;if(s.pos>=s.n){it.off=1;s.lv.forEach(q=>q.it.off=1);done()}}else{SFX.err();noiseAt(P.x,P.z,28);msg('Не тот порядок! Механизм сбросился с грохотом');s.pos=0;s.lv.forEach(q=>{q.on=0;q.arm.rotation.x=.7})}}};ob.it=it;s.lv.push(ob);I.push(it);OB.push(it)}
-  const np=spotPick({lo:0,sp:2});addItem('doc',np,'Прочитать схему',()=>note('Схема',('Порядок включения:\n'+order.map(k=>SYM[k]).join('  →  ')+'\n\n(символы нарисованы над рубильниками)')),0).off=0}
+   const it={x,z,r:1.6,obj:1,l:()=>ob.on?'':'Повернуть рубильник',f:()=>{netI(it);SFX.lever();ob.on=1;ob.arm.rotation.x=-.7;noiseAt(P.x,P.z,12);
+    if(order[s.pos]===ob.sym){s.pos++;if(s.pos>=s.n){it.off=1;s.lv.forEach(q=>q.it.off=1);done()}}else{SFX.err();noiseAt(P.x,P.z,28);msg('Не тот порядок! Механизм сбросился с грохотом');s.pos=0;s.lv.forEach(q=>{q.on=0;q.arm.rotation.x=.7})}}};ob.it=it;s.lv.push(ob);regI(it);OB.push(it)}
+  const np=spotPick({lo:0,sp:2});addItem('doc',np,'Прочитать схему',()=>note('Схема',('Порядок включения:\n'+order.map(k=>SYM[k]).join('  →  ')+'\n\n(символы нарисованы над рубильниками)')),0,'schema').off=0}
  else if(s.k==='valve'||s.k==='hold'){const n=s.k==='valve'?s.n:1;s.c=0;s.items=[];for(let k=0;k<n;k++){const kind=s.k==='valve'?'valve':s.o,p=spotPick({wall:1,off:kind==='valve'?.05:.45,lo:.25,sp:3}),ob=addObj(kind,p,{});
    const x=p.x+Math.sin(p.ry)*.95,z=p.z+Math.cos(p.ry)*.95,it={x,z,r:1.8,obj:1,hold:s.s||3.5,p:0,ob,l:()=>s.t.replace(/\s*\(.*\)/,'')+' — удерживай',f:()=>{}};
-   it.done=()=>{it.off=1;s.c++;SFX.ok();if(kind==='valve')msg('Задвижка открыта ('+s.c+'/'+n+')');if(s.c>=n)done()};s.items.push(it);I.push(it);OB.push(it)}}
+   it.done=()=>{it.off=1;netI(it);s.c++;SFX.ok();if(kind==='valve')msg('Задвижка открыта ('+s.c+'/'+n+')');if(s.c>=n)done()};s.items.push(it);regI(it);OB.push(it)}}
  else if(s.k==='scan'){s.c=0;s.items=[];for(let k=0;k<s.n;k++){const p=spotPick({wall:1,off:.03,lo:.2,sp:3});const ob=addObj('scan',p,{sym:k+1});s.items.push({ob,x:p.x,z:p.z,p:0,obj:1});OB.push(s.items[k])}}
  else if(s.k==='read'){const p=spotPick({lo:s.A?0:.3,A:s.A,sp:3});addItem('doc',p,'Прочитать: '+s.ti,()=>{note(s.ti,s.x.replace('{CODE}',code),done)},1)}
  else if(s.k==='key'){addItem('ky',spotPick({lo:.35,sp:3}),'Взять ключ-карту',()=>{inv.key=1;msg('Ключ-карта. Подходит к запертой двери');done()},1)}
- else if(s.k==='survive'){s.p=s.s;MO.huntT=0;if(MO.st==='idle')spawnFar()}
- else if(s.k==='exit'||s.k==='escape'){exitO.open=1;SFX.door();OB.push({x:exitO.x,z:exitO.z,obj:1,exit:1});if(s.k==='escape')spawnBehind(19)}
+ else if(s.k==='survive'){s.p=s.s;MO.huntT=0;if(MO.st==='idle'&&!NET.cl)spawnFar()}
+ else if(s.k==='exit'||s.k==='escape'){exitO.open=1;SFX.door();OB.push({x:exitO.x,z:exitO.z,obj:1,exit:1});if(s.k==='escape'&&!NET.cl)spawnBehind(19)}
  else if(s.k==='radio'){SFX.radio();sub(s.x,7000);setTimeout(()=>{if(stp()===s&&mode!=='end')done()},3500)}
- else if(s.k==='stun'){if(MO.st==='idle')spawnFar();}
+ else if(s.k==='stun'){if(MO.st==='idle'&&!NET.cl)spawnFar();}
  $('obj').innerHTML='<b>'+(mi+1)+'. '+md.n.toUpperCase()+'</b>'+T2}
 const cap=s=>s[0].toUpperCase()+s.slice(1);
-function done(){const s=stp();if(!s||s.dn)return;s.dn=1;OB=OB.filter(o=>!o.obj||o.off===0);OB=[];if(s.say)msg(s.say);if(s.ev)event(s.ev);const tok=md;setTimeout(()=>{if(md===tok&&(mode==='play'||mode==='pause'))nextStep()},s.k==='radio'?0:600)}
-function event(e){if(e==='scare'){bo=0;boT=1.4;SFX.clang();P.san-=8;MO.st!=='chase'&&(Object.assign(MO,{st:'search',lx:P.x,lz:P.z,sw:0,n:0}));if(MO.st==='idle')spawnFar();msg('Шум разнёсся по станции…')}
- else if(e==='hunt'){if(MO.st==='idle')spawnFar();Object.assign(MO,{st:'search',lx:P.x+(rand()-.5)*6,lz:P.z+(rand()-.5)*6,sw:0,n:0})}
+function done(){const s=stp();if(!s||s.dn)return;s.dn=1;if(s.uv)inv.uv=1;if(NET.on&&!NET.remote)nsend('a',{st:si});OB=OB.filter(o=>!o.obj||o.off===0);OB=[];if(s.say)msg(s.say);if(s.ev)event(s.ev);const tok=md;setTimeout(()=>{if(md===tok&&(mode==='play'||mode==='pause'||mode==='spec'))nextStep()},s.k==='radio'?0:600)}
+function event(e){const H=!NET.cl;PT=tgt();
+ if(e==='scare'){bo=0;boT=1.4;SFX.clang();P.san-=8;if(H){MO.st!=='chase'&&(Object.assign(MO,{st:'search',lx:PT.x,lz:PT.z,sw:0,n:0}));if(MO.st==='idle')spawnFar()}msg('Шум разнёсся по станции…')}
+ else if(e==='hunt'){if(H){if(MO.st==='idle')spawnFar();Object.assign(MO,{st:'search',lx:PT.x+(rand()-.5)*6,lz:PT.z+(rand()-.5)*6,sw:0,n:0})}}
  else if(e==='blackout'){bo=0;boT=4;beep(110,.5,'square',.3,40);P.san-=6;msg('Свет погас…')}
- else if(e==='spawn'){spawnSight()}
+ else if(e==='spawn'){if(H)spawnSight()}
  else if(e==='quake'){P.shk=1.6;SFX.rumble();bo=.2;boT=1.5;msg('Своды тоннеля задрожали')}
  else if(e==='whisper'){SFX.whisper();P.san-=5}
- else if(e==='stalk'){if(MO.st==='idle')spawnFar();MO.st='stalk';MO.stalk=28}
+ else if(e==='stalk'){if(H){if(MO.st==='idle')spawnFar();MO.st='stalk';MO.stalk=28}}
  else if(e==='phantoms'){phan.boost=40;phan.t=2;SFX.whisper()}
  else if(e==='flood'){LV.water.forEach(w=>w.tgt=.03);SFX.rumble()}}
+function ambient(e){if(e===0){bo=0;boT=2.2;beep(110,.5,'square',.3,40);msg('Свет погас…')}else if(e===1){SFX.clang();msg('Где-то в тоннеле лязгнул металл')}else if(e===2){beep(90,1.5,'sawtooth',.18,35);msg('Из темноты донёсся низкий гул')}
+ else if(e===3){SFX.rumble();P.shk=.5;msg('Вдалеке прошёл поезд… которого не может быть')}else if(e===4){SFX.whisper()}
+ else if(MO.st==='patrol'){if(!NET.cl){PT=tgt();Object.assign(MO,{st:'search',lx:PT.x+(rand()-.5)*10,lz:PT.z+(rand()-.5)*10,sw:0,n:0})}beep(160,.6,'square',.25,60);msg('Что-то услышало шум…')}}
 
 /* ---------- monster placement ---------- */
-function freeSpot(minD,maxD,hidden){let best=null;for(let k=0;k<80;k++){const s=LV.spots[rand()*LV.spots.length|0];if(LV.annex&&s[2]===LV.annex.room.i)continue;const x=wx(s[0]),z=wx(s[1]),d=Math.hypot(x-P.x,z-P.z);
-  if(d<minD||d>maxD)continue;if(hidden&&los(x,z,P.x,P.z))continue;best=[x,z];break}return best}
+function freeSpot(minD,maxD,hidden){let best=null;for(let k=0;k<80;k++){const s=LV.spots[rand()*LV.spots.length|0];if(LV.annex&&s[2]===LV.annex.room.i)continue;const x=wx(s[0]),z=wx(s[1]),d=Math.hypot(x-PT.x,z-PT.z);
+  if(d<minD||d>maxD)continue;if(hidden&&los(x,z,PT.x,PT.z))continue;best=[x,z];break}return best}
 function spawnFar(now){const p=freeSpot(26,90,1)||freeSpot(18,99,0);if(!p)return;MO.x=p[0];MO.z=p[1];if(!now||MO.t0<=0){MO.st='patrol';MG.visible=true}else MO.st='idle'}
-function spawnSight(){let p=null;const fx=-Math.sin(P.yaw),fz=-Math.cos(P.yaw);for(let k=0;k<120&&!p;k++){const s=LV.spots[rand()*LV.spots.length|0],x=wx(s[0]),z=wx(s[1]),dx=x-P.x,dz=z-P.z,d=Math.hypot(dx,dz);
-  if(d>9&&d<20&&(dx*fx+dz*fz)/d>.5&&los(P.x,P.z,x,z))p=[x,z]}if(!p)p=freeSpot(10,24,0);if(!p)return;Object.assign(MO,{x:p[0],z:p[1],st:'chase',lost:0,lx:P.x,lz:P.z,cool:1.3,scrT:0});MO.yaw=Math.atan2(P.x-MO.x,P.z-MO.z);MG.visible=true;SFX.scream();MO.scrT=8;P.san-=12;P.shk=.4}
-function spawnBehind(d){const fx=Math.sin(P.yaw),fz=Math.cos(P.yaw);let p=null;for(let k=0;k<100&&!p;k++){const s=LV.spots[rand()*LV.spots.length|0],x=wx(s[0]),z=wx(s[1]),dx=x-P.x,dz=z-P.z,dd=Math.hypot(dx,dz);if(dd>d-4&&dd<d+8&&(dx*fx+dz*fz)/dd>.2)p=[x,z]}
- if(!p)p=freeSpot(d-4,d+12,0);if(!p)return;Object.assign(MO,{x:p[0],z:p[1],st:'chase',lost:0,lx:P.x,lz:P.z,cool:.8});MG.visible=true;SFX.scream();MO.scrT=8}
+function spawnSight(){let p=null;const fx=-Math.sin(PT.yaw),fz=-Math.cos(PT.yaw);for(let k=0;k<120&&!p;k++){const s=LV.spots[rand()*LV.spots.length|0],x=wx(s[0]),z=wx(s[1]),dx=x-PT.x,dz=z-PT.z,d=Math.hypot(dx,dz);
+  if(d>9&&d<20&&(dx*fx+dz*fz)/d>.5&&los(PT.x,PT.z,x,z))p=[x,z]}if(!p)p=freeSpot(10,24,0);if(!p)return;Object.assign(MO,{x:p[0],z:p[1],st:'chase',lost:0,lx:PT.x,lz:PT.z,cool:1.3,scrT:0});MO.yaw=Math.atan2(PT.x-MO.x,PT.z-MO.z);MG.visible=true;SFX.scream();MO.scrT=8;P.san-=12;P.shk=.4;if(NET.on&&NET.host)nsend('sc',{})}
+function spawnBehind(d){const fx=Math.sin(PT.yaw),fz=Math.cos(PT.yaw);let p=null;for(let k=0;k<100&&!p;k++){const s=LV.spots[rand()*LV.spots.length|0],x=wx(s[0]),z=wx(s[1]),dx=x-PT.x,dz=z-PT.z,dd=Math.hypot(dx,dz);if(dd>d-4&&dd<d+8&&(dx*fx+dz*fz)/dd>.2)p=[x,z]}
+ if(!p)p=freeSpot(d-4,d+12,0);if(!p)return;Object.assign(MO,{x:p[0],z:p[1],st:'chase',lost:0,lx:PT.x,lz:PT.z,cool:.8});MG.visible=true;SFX.scream();MO.scrT=8}
 
 /* ---------- monster AI ---------- */
-function monUpdate(dt){const m=MO,dx=P.x-m.x,dz=P.z-m.z,d=Math.hypot(dx,dz);
+function monUpdate(dt){const m=MO,Q=tgt();PT=Q;const dx=Q.x-m.x,dz=Q.z-m.z,d=Math.hypot(dx,dz);
  if(m.st==='idle'){m.t0-=dt;if(m.t0<=0)spawnFar();return}
  MG.visible=true;m.cool-=dt;m.chk-=dt;m.scrT-=dt;m.lunge-=dt;
- const fx=-Math.sin(P.yaw)*Math.cos(P.pit),fz=-Math.cos(P.yaw)*Math.cos(P.pit),playerLooks=d<28&&-(dx*fx+dz*fz)/(d||1)>.82&&los(P.x,P.z,m.x,m.z);
+ const fx=-Math.sin(Q.yaw)*Math.cos(Q.pit),fz=-Math.cos(Q.yaw)*Math.cos(Q.pit),playerLooks=d<28&&-(dx*fx+dz*fz)/(d||1)>.82&&los(Q.x,Q.z,m.x,m.z);
  /* noise */
  for(const[nx,nz,r]of noiseQ){const nd=Math.hypot(nx-m.x,nz-m.z);if(nd<r&&m.st!=='chase'&&m.st!=='flee'){Object.assign(m,{st:'search',lx:nx+(rand()-.5)*2,lz:nz+(rand()-.5)*2,sw:0,n:0})}}noiseQ.length=0;
  /* perception */
- if(m.chk<=0&&m.st!=='flee'){m.chk=.12;const an=(dx*Math.sin(m.yaw)+dz*Math.cos(m.yaw))/(d||1),lit=P.light&&P.bat>0,rg=P.hide?0:(lit?25:11)*(P.crouch?.65:1)*(P.moving?1:.8);
-  let see=!P.hide&&d<rg&&(an>.2||d<3)&&los(m.x,m.z,P.x,P.z);
-  if(!see&&lit&&!P.hide&&d<32&&playerLooks)see=1;/* it walks to the light */
-  if(see){if(m.st!=='chase'){if(m.st!=='stalk'||d<8||playerLooks&&rand()<.15){m.st='chase';if(m.scrT<=0){SFX.scream();m.scrT=9;P.san-=6}}}if(m.st==='chase'){m.lost=0;m.lx=P.x;m.lz=P.z}}
+ if(m.chk<=0&&m.st!=='flee'){m.chk=.12;const an=(dx*Math.sin(m.yaw)+dz*Math.cos(m.yaw))/(d||1),lit=Q.light&&Q.bat>0,rg=Q.hide?0:(lit?25:11)*(Q.crouch?.65:1)*(Q.moving?1:.8);
+  let see=!Q.hide&&d<rg&&(an>.2||d<3)&&los(m.x,m.z,Q.x,Q.z);
+  if(!see&&lit&&!Q.hide&&d<32&&playerLooks)see=1;/* it walks to the light */
+  if(see){if(m.st!=='chase'){if(m.st!=='stalk'||d<8||playerLooks&&rand()<.15){m.st='chase';if(m.scrT<=0){SFX.scream();m.scrT=9;Q.san-=6}}}if(m.st==='chase'){m.lost=0;m.lx=Q.x;m.lz=Q.z}}
   else if(m.st==='chase'){m.lost+=.12;if(m.lost>4){Object.assign(m,{st:'search',sw:0,n:0})}}
-  else if(lit&&d<18&&m.st==='patrol'&&rand()<.04){Object.assign(m,{st:'search',lx:P.x+(rand()-.5)*8,lz:P.z+(rand()-.5)*8,sw:0,n:0})}}
+  else if(lit&&d<18&&m.st==='patrol'&&rand()<.04){Object.assign(m,{st:'search',lx:Q.x+(rand()-.5)*8,lz:Q.z+(rand()-.5)*8,sw:0,n:0})}}
  /* hunt during survive */
- const s=stp();if(s&&s.k==='survive'&&m.st!=='chase'&&m.st!=='flee'){m.huntT-=dt;if(m.huntT<=0){m.huntT=5;Object.assign(m,{st:'search',lx:P.x+(rand()-.5)*7,lz:P.z+(rand()-.5)*7,sw:0,n:0})}}
+ const s=stp();if(s&&s.k==='survive'&&m.st!=='chase'&&m.st!=='flee'){m.huntT-=dt;if(m.huntT<=0){m.huntT=5;Object.assign(m,{st:'search',lx:Q.x+(rand()-.5)*7,lz:Q.z+(rand()-.5)*7,sw:0,n:0})}}
  /* UV burns, light attracts */
- const aim=playerLooks&&d<10&&P.light&&P.bat>0&&!P.hide;
- if(aim&&sv.uv&&m.st!=='flee'){P.uvT+=dt;P.bat=Math.max(0,P.bat-dt*5);if(P.uvT>1.1){P.uvT=0;Object.assign(m,{st:'flee',flee:7});SFX.scream();m.scrT=4;msg('Оно горит в ультрафиолете и бежит!');const q=stp();if(q&&q.k==='stun')done()}}else P.uvT=Math.max(0,P.uvT-dt*2);
+ const aim=playerLooks&&d<10&&Q.light&&Q.bat>0&&!Q.hide;
+ if(aim&&inv.uv&&m.st!=='flee'){Q.uvT+=dt;Q.bat=Math.max(0,Q.bat-dt*5);if(Q.uvT>1.1){Q.uvT=0;Object.assign(m,{st:'flee',flee:7});SFX.scream();m.scrT=4;msg('Оно горит в ультрафиолете и бежит!');const q=stp();if(q&&q.k==='stun')done()}}else Q.uvT=Math.max(0,Q.uvT-dt*2);
  /* stalk: hides when looked at */
- if(m.st==='stalk'){m.stalk-=dt;if(playerLooks){m.look+=dt;if(m.look>.5){m.look=0;const p=freeSpot(16,40,1);if(p&&rand()<.6){m.x=p[0];m.z=p[1];SFX.click()}else{Object.assign(m,{st:'chase',lx:P.x,lz:P.z,lost:0});SFX.scream();m.scrT=8}}}if(m.stalk<=0)m.st='patrol'}
+ if(m.st==='stalk'){m.stalk-=dt;if(playerLooks){m.look+=dt;if(m.look>.5){m.look=0;const p=freeSpot(16,40,1);if(p&&rand()<.6){m.x=p[0];m.z=p[1];SFX.click()}else{Object.assign(m,{st:'chase',lx:Q.x,lz:Q.z,lost:0});SFX.scream();m.scrT=8}}}if(m.stalk<=0)m.st='patrol'}
  /* vent relocation when far & unseen */
  if(!playerLooks&&d>34&&m.st==='patrol'){m.unseen+=dt;if(m.unseen>20){m.unseen=0;const p=freeSpot(16,26,1);if(p){m.x=p[0];m.z=p[1];m.path=[];setTimeout(SFX.clang,400);msg('В вентиляции что-то проползло…')}}}else m.unseen=0;
  /* goal & speed */
@@ -183,37 +190,40 @@ function monUpdate(dt){const m=MO,dx=P.x-m.x,dz=P.z-m.z,d=Math.hypot(dx,dz);
  else if(m.st==='chase'){gx=m.lx;gz=m.lz;sp=3.85;if(d<6&&m.lunge<-2&&rand()<.02)m.lunge=.55;if(m.lunge>0)sp=5.6;if(d<2.2&&m.cool>0)sp=.4;
   if(Math.hypot(m.x-gx,m.z-gz)<1.2&&m.lost>0)Object.assign(m,{st:'search',sw:0,n:0})}
  else if(m.st==='search'){gx=m.lx;gz=m.lz;sp=2.35;if(Math.hypot(m.x-gx,m.z-gz)<1.4){sp=0;m.sw+=dt;
-   if(!m.lk&&P.hide&&P.lk&&Math.hypot(P.lk.lx-m.x,P.lk.lz-m.z)<6){m.lk=P.lk;m.lkT=m.saw?1:3+rand()*2;m.lx=P.lk.x;m.lz=P.lk.z}
-   if(m.lk&&Math.hypot(m.lk.x-m.x,m.lk.z-m.z)<1.6){m.lkT-=dt;sp=0;m.sw=0;if(m.lkT<=0){if(P.hide&&P.lk===m.lk&&(m.saw||rand()<.12)){P.hide=0;P.x=m.lk.x;P.z=m.lk.z;deathScare();return}m.lk=null;m.saw=0;m.lx=m.x+(rand()-.5)*12;m.lz=m.z+(rand()-.5)*12}}
+   if(!m.lk&&Q.hide&&Q.lk&&Math.hypot(Q.lk.lx-m.x,Q.lk.lz-m.z)<6){m.lk=Q.lk;m.lkT=m.saw?1:3+rand()*2;m.lx=Q.lk.x;m.lz=Q.lk.z}
+   if(m.lk&&Math.hypot(m.lk.x-m.x,m.lk.z-m.z)<1.6){m.lkT-=dt;sp=0;m.sw=0;if(m.lkT<=0){if(Q.hide&&Q.lk===m.lk&&(m.saw||rand()<.12)){if(Q===P){P.hide=0;P.x=m.lk.x;P.z=m.lk.z;deathScare()}else killRemote();return}m.lk=null;m.saw=0;m.lx=m.x+(rand()-.5)*12;m.lz=m.z+(rand()-.5)*12}}
    else if(m.sw>1.6+rand()){m.sw=0;m.lx=m.x+(rand()-.5)*14;m.lz=m.z+(rand()-.5)*12;if(++m.n>4){m.n=0;m.st='patrol'}}}}
- else if(m.st==='stalk'){gx=P.x;gz=P.z;sp=d>13?2.6:d>9?1.2:0}
+ else if(m.st==='stalk'){gx=Q.x;gz=Q.z;sp=d>13?2.6:d>9?1.2:0}
  else if(m.st==='flee'){m.flee-=dt;sp=5;if(!m.fg||Math.hypot(m.x-m.fg[0],m.z-m.fg[1])<2)m.fg=freeSpot(25,70,1)||[m.x-dx,m.z-dz];gx=m.fg[0];gz=m.fg[1];if(m.flee<=0)m.st='patrol'}
  sp*=mult;if(s&&s.k==='escape'&&m.st==='chase')sp=Math.min(sp,3.4);
  /* path following */
  const gk=Math.floor(gx/CS)+Math.floor(gz/CS)*LV.W;m.pT-=dt;if(gk!==m.gk||m.pT<=0){m.gk=gk;m.pT=.5;m.path=astar(m.x,m.z,gx,gz)}
  let tx=gx,tz=gz;while(m.path.length&&Math.hypot(m.path[0][0]-m.x,m.path[0][1]-m.z)<.7)m.path.shift();
  if(m.path.length){tx=m.path[0][0];tz=m.path[0][1];if(m.path.length>1&&los(m.x,m.z,m.path[1][0],m.path[1][1])&&Math.hypot(m.path[1][0]-m.x,m.path[1][1]-m.z)<CS*2.2){tx=m.path[1][0];tz=m.path[1][1]}}
- if(m.st==='chase'&&d<7&&los(m.x,m.z,P.x,P.z)){tx=P.x;tz=P.z}
+ if(m.st==='chase'&&d<7&&los(m.x,m.z,Q.x,Q.z)){tx=Q.x;tz=Q.z}
  let ax=tx-m.x,az=tz-m.z;const al=Math.hypot(ax,az)||1;ax/=al;az/=al;if(al<.15)sp=0;
  if(m.turn>0){m.turn-=dt;const c=Math.cos(m.ts),sn=Math.sin(m.ts),q=ax*c-az*sn;az=ax*sn+az*c;ax=q}
  if(m.cool>.9)sp=0;const ox=m.x,oz=m.z;move(m,ax*sp*dt,az*sp*dt,.42,1);m.sp=Math.hypot(m.x-ox,m.z-oz)/Math.max(dt,1e-4);
  if(sp>.2&&m.sp<sp*.25){m.stuck+=dt;if(m.stuck>.45){m.stuck=0;m.turn=.7;m.ts=(rand()<.5?-1:1)*1.3;m.pT=0}}else m.stuck=0;
  if(sp>0)m.yaw+=angDiff(m.yaw,Math.atan2(ax,az))*Math.min(1,dt*7);else if(m.st==='chase'||m.st==='stalk')m.yaw+=angDiff(m.yaw,Math.atan2(dx,dz))*Math.min(1,dt*4);
- /* animation: crawls in tunnels while searching, head locks onto the player */
- const ci=Math.floor(m.x/CS)+Math.floor(m.z/CS)*LV.W,inTun=LV.ty[ci]===6;m.crawl=(m.st==='search'&&inTun)||(m.st==='stalk'&&d<16)||m.st==='flee'&&rand()<.002?1:m.crawl&&rand()<.995?m.crawl:0;
+ monFx(dt,Q);
+ /* attack */
+ if(d<1.3&&(!Q.hide)&&m.st!=='flee'&&m.st!=='idle'){if(Q===P)deathScare();else killRemote()}}
+function monFx(dt,Q){const m=MO,dx=Q.x-m.x,dz=Q.z-m.z,d=Math.hypot(dx,dz),dP=Math.hypot(P.x-m.x,P.z-m.z);
+ if(!NET.cl){const ci=Math.floor(m.x/CS)+Math.floor(m.z/CS)*LV.W,inTun=LV.ty[ci]===6;m.crawl=(m.st==='search'&&inTun)||(m.st==='stalk'&&d<16)||m.st==='flee'&&rand()<.002?1:m.crawl&&rand()<.995?m.crawl:0}
  const hy=clamp(angDiff(m.yaw,Math.atan2(dx,dz)),-1.4,1.4)*(m.st==='chase'||m.st==='stalk'?1:.2);
  animMonster(MG,dt,{sp:m.sp,crawl:m.crawl,calm:m.st==='patrol',jaw:m.st==='chase'?(.4+.5*Math.max(0,Math.sin(t*3))):m.st==='flee'?1:.08,hyaw:hy,reach:m.st==='chase'&&d<3?1:0,breath:m.st==='chase'?6:2.4});
  MG.position.set(m.x,0,m.z);MG.rotation.y=m.yaw;
- /* sound */
  setPan(m.x,1.7,m.z);if(AU.mv){AU.mv.gain.value=1;AU.br.gain.value=m.st==='chase'?.6:m.st==='flee'?.3:.22;AU.gr.gain.value=m.st==='chase'?.35:.05;AU.bf.frequency.value=m.st==='chase'?500:850+Math.sin(t*.8)*200;AU.go.frequency.value=48+Math.sin(t*5)*6}
  m.clkT-=dt;if(m.clkT<=0){m.clkT=2+rand()*5;if(m.st!=='chase')SFX.click()}
- const ws=Math.floor(MG.userData.ph/PI);if(m.sp>.3&&ws!==m.ls){m.ls=ws;if(d<26)SFX.mstep()}
- if(d<14&&!P.hide||d<6){m.hb-=dt;if(m.hb<=0){m.hb=Math.max(.38,d/14*1.1);SFX.heart(1-d/16)}}
- if(d<20&&los(P.x,P.z,m.x,m.z)&&playerLooks)P.san-=dt*4*(md.psy||1);
- /* attack */
- if(d<1.3&&(!P.hide)&&m.st!=='flee'&&m.st!=='idle')deathScare()}
+ const ws=Math.floor(MG.userData.ph/PI);if(m.sp>.3&&ws!==m.ls){m.ls=ws;if(dP<26)SFX.mstep()}
+ if(dP<14&&!P.hide||dP<6){m.hb-=dt;if(m.hb<=0){m.hb=Math.max(.38,dP/14*1.1);SFX.heart(1-dP/16)}}
+ if(dP<20){const fx=-Math.sin(P.yaw)*Math.cos(P.pit),fz=-Math.cos(P.yaw)*Math.cos(P.pit);if(-((P.x-m.x)*fx+(P.z-m.z)*fz)/(dP||1)>.82&&los(P.x,P.z,m.x,m.z))P.san-=dt*4*(md.psy||1)}}
+/* guest side: monster is simulated by the host; here we only present it (interpolated state arrives in MO) */
+function monClient(dt){const m=MO;m.scrT-=dt;if(m.st==='idle'){MG.visible=false;NET.pst='idle';return}MG.visible=true;
+ if(m.st==='chase'&&NET.pst!=='chase'&&m.scrT<=0){SFX.scream();m.scrT=9;P.san-=6}NET.pst=m.st;monFx(dt,P.dead&&NET.rp?NET.rp:P)}
 let scT=0,sc0=0;
-function deathScare(){if(mode!=='play')return;mode='scare';scT=0;sc0=performance.now();uiOpen=0;try{document.exitPointerLock()}catch(e){}show('hud',0);show('tc',0);show('pn',0);P.hide=0;HAND.visible=false;MG.visible=true;$('vig').classList.remove('h');
+function deathScare(){if(mode!=='play')return;mode='scare';P.dead=1;if(NET.on)nsend('d',{});scT=0;sc0=performance.now();uiOpen=0;try{document.exitPointerLock()}catch(e){}show('hud',0);show('tc',0);show('pn',0);P.hide=0;HAND.visible=false;MG.visible=true;$('vig').classList.remove('h');
  SFX.jump();const f=$('fx');f.style.transition='none';f.style.opacity=.7;setTimeout(()=>{f.style.transition='opacity .6s';f.style.opacity=.35},60);if(navigator.vibrate)try{navigator.vibrate([300,80,500])}catch(e){}}
 function scareUpdate(dt){scT=(performance.now()-sc0)/1000;const m=MO,ty=Math.atan2(-(m.x-P.x),-(m.z-P.z));P.yaw+=angDiff(P.yaw,ty)*Math.min(1,dt*16);P.pit+=(.02-P.pit)*Math.min(1,dt*10);
  const sh=scT<1.3?.05:0;cam.position.set(P.x+(rand()-.5)*sh,P.h,P.z+(rand()-.5)*sh);cam.rotation.set(P.pit+(rand()-.5)*sh*.8,P.yaw+(rand()-.5)*sh*.8,(rand()-.5)*sh*1.6);
@@ -227,7 +237,7 @@ function hurt(v){P.hp-=v;P.shk=.6;P.san-=10;const f=$('fx');f.style.transition='
 /* ---------- player update ---------- */
 const V3=new THREE.Vector3,V4=new THREE.Vector3;
 function play(dt){pt+=dt;const sn=Math.sin(P.yaw),cs=Math.cos(P.yaw);
- let fx=(K.KeyW||K.ArrowUp?1:0)-(K.KeyS||K.ArrowDown?1:0)-T.y,sx=(K.KeyD||K.ArrowRight?1:0)-(K.KeyA||K.ArrowLeft?1:0)+T.x;const l=Math.hypot(fx,sx);if(l>1){fx/=l;sx/=l}
+ let fx=(K.KeyW||K.ArrowUp?1:0)-(K.KeyS||K.ArrowDown?1:0)-T.y,sx=(K.KeyD||K.ArrowRight?1:0)-(K.KeyA||K.ArrowLeft?1:0)+T.x;if(uiOpen||NET.paused){fx=0;sx=0}const l=Math.hypot(fx,sx);if(l>1){fx/=l;sx/=l}
  P.moving=l>.1&&!P.hide;if(P.tired&&P.st>30)P.tired=0;
  let water=0;for(const w of LV.water){if(w.tgt!=null){w.lv+=(w.tgt-w.lv)*dt*.25;w.m.position.y=w.lv}if(P.x>w.x0&&P.x<w.x1&&P.z>w.z0&&P.z<w.z1&&w.lv>.15)water=w.lv}P.wet=water;
  const wr=P.moving&&(K.ShiftLeft||K.ShiftRight||T.run)&&!P.crouch&&!P.tired&&P.st>0;P.run=wr;
@@ -243,12 +253,12 @@ function play(dt){pt+=dt;const sn=Math.sin(P.yaw),cs=Math.cos(P.yaw);
  /* interaction */
  let best=null,bd=9,lab='';const fdx=-sn,fdz=-cs;for(const o of I){if(o.off)continue;const ox=o.x-P.x,oz=o.z-P.z,d=Math.hypot(ox,oz);if(d>o.r||d>=bd)continue;if(d>.9&&(ox*fdx+oz*fdz)/d<.3)continue;const L=o.l();if(!L)continue;best=o;bd=d;lab=L}
  cur=best;if(P.hide)lab='Выйти из шкафа';
- const holding=K.KeyE||T.act;if(cur&&cur.hold&&!P.hide){if(holding){cur.p+=dt;if(cur.ob&&cur.ob.wheel)cur.ob.wheel.rotation.z+=dt*2.5;if((cur.ptick=(cur.ptick||0)-dt)<=0){cur.ptick=.6;cur.ob&&cur.ob.wheel?SFX.valve():noise(80,1,.6,.3,'lowpass');noiseAt(P.x,P.z,cur.ob&&cur.ob.wheel?11:20)}
+ const holding=(K.KeyE||T.act)&&!uiOpen&&!NET.paused;if(cur&&cur.hold&&!P.hide){if(holding){cur.p+=dt;if(cur.ob&&cur.ob.wheel)cur.ob.wheel.rotation.z+=dt*2.5;if((cur.ptick=(cur.ptick||0)-dt)<=0){cur.ptick=.6;cur.ob&&cur.ob.wheel?SFX.valve():noise(80,1,.6,.3,'lowpass');noiseAt(P.x,P.z,cur.ob&&cur.ob.wheel?11:20)}
    if(cur.p>=cur.hold){cur.done()}}show('hold',1);$('hold').firstChild.style.width=clamp(cur.p/cur.hold,0,1)*100+'%'}else show('hold',0);
  $('pr').textContent=lab?(touch?'':(cur&&cur.hold?'[удерживай E] ':'[E] '))+lab:'';$('vig').classList.toggle('h',!!P.hide);
  /* scanning symbols with the flashlight */
  const s=stp();if(s&&s.k==='scan'&&P.light&&P.bat>0){for(const it of s.items){if(it.done)continue;const ox=it.x-P.x,oz=it.z-P.z,d=Math.hypot(ox,oz),dy=1.7-P.h;const dot=(ox*fdx*Math.cos(P.pit)+oz*fdz*Math.cos(P.pit)+dy*Math.sin(P.pit))/Math.hypot(d,dy);
-  if(d<8&&dot>.94&&los(P.x,P.z,it.x-(ox/d)*.3,it.z-(oz/d)*.3)){it.p+=dt;$('pr').textContent='Изучаю знак…';if(it.p>1.3){it.done=1;it.obj=0;it.off=1;s.c++;it.ob.g.material.emissive.setHex(0x330000);SFX.whisper();msg('Знак изучен ('+s.c+'/'+s.n+')');if(s.c>=s.n)done()}}}}
+  if(d<8&&dot>.94&&los(P.x,P.z,it.x-(ox/d)*.3,it.z-(oz/d)*.3)){it.p+=dt;$('pr').textContent='Изучаю знак…';if(it.p>1.3)scanMark(s,it,0)}}}
  /* exits */
  if(exitO){exitO.lv[0].position.x+=((exitO.open?-1.5:-.55)-exitO.lv[0].position.x)*dt*1.5;exitO.lv[1].position.x+=((exitO.open?1.5:.55)-exitO.lv[1].position.x)*dt*1.5;exitO.gl.material.opacity=exitO.open?.6+Math.sin(t*3)*.1:0;
   if(exitO.open&&s&&(s.k==='exit'||s.k==='escape')&&Math.hypot(P.x-exitO.x,P.z-exitO.z)<1.8){if(s.fake){msg(s.fake);s.fake=0;exitO.open=0;placeExit(1);exitO.open=1;if(s.ev)event(s.ev);s.ev=0;OB=[{x:exitO.x,z:exitO.z,obj:1,exit:1}];$('obj').innerHTML='<b>'+(mi+1)+'. '+md.n.toUpperCase()+'</b>'+'Найди другой путь'}else done()}}
@@ -263,17 +273,14 @@ function play(dt){pt+=dt;const sn=Math.sin(P.yaw),cs=Math.cos(P.yaw);
  const psy=md.psy||1;P.san+=dt*((P.light||nearL)?(nearL?1.4:.25):-1.3*psy);if(P.hide)P.san+=dt*.4;P.san=clamp(P.san,0,100);if(P.san<=0){P.hp-=dt*2.5;if(P.hp<=0)finish(0)}
  phantoms(dt);
  for(const o of I)if(o.m&&!o.off&&o.bob){o.m.position.y=o.y+Math.sin(t*2+o.x)*.04;o.m.rotation.y+=dt}
- monUpdate(dt);if(mode!=='play')return;
+ if(NET.cl)monClient(dt);else monUpdate(dt);if(mode!=='play')return;
  /* ambient events */
- evT-=dt;if(evT<=0){evT=25+rand()*35;const e=rand()*6|0;
-  if(e===0){bo=0;boT=2.2;beep(110,.5,'square',.3,40);msg('Свет погас…')}else if(e===1){SFX.clang();msg('Где-то в тоннеле лязгнул металл')}else if(e===2){beep(90,1.5,'sawtooth',.18,35);msg('Из темноты донёсся низкий гул')}
-  else if(e===3){SFX.rumble();P.shk=.5;msg('Вдалеке прошёл поезд… которого не может быть')}else if(e===4){SFX.whisper()}
-  else if(MO.st==='patrol'){Object.assign(MO,{st:'search',lx:P.x+(rand()-.5)*10,lz:P.z+(rand()-.5)*10,sw:0,n:0});beep(160,.6,'square',.25,60);msg('Что-то услышало шум…')}}
+ evT-=dt;if(evT<=0){evT=25+rand()*35;if(!NET.cl){const e=rand()*6|0;if(NET.on)nsend('ev',{e});ambient(e)}}
  if(rand()<dt*.15&&(LV.ty[Math.floor(P.x/CS)+Math.floor(P.z/CS)*LV.W]===6||P.wet))SFX.drip();
  /* HUD */
  $('hp').style.width=clamp(P.hp,0,100)+'%';$('st').style.width=P.st+'%';$('bt').style.width=P.bat+'%';$('sn').style.width=P.san+'%';
  const mn=(md.clock||227)+(pt/9|0);$('clk').textContent=String(mn/60%24|0).padStart(2,'0')+':'+String(mn%60).padStart(2,'0');
- let iv='Батареи '+inv.bat+'  Аптечки '+inv.med;for(const k in inv.it)if(inv.it[k])iv+='  '+cap(ITEMS[k].n)+' ×'+inv.it[k];if(inv.key)iv+='  Ключ-карта';if(sv.uv)iv+='  УФ';$('iv').textContent=iv;
+ let iv='Батареи '+inv.bat+'  Аптечки '+inv.med;for(const k in inv.it)if(inv.it[k])iv+='  '+cap(ITEMS[k].n)+' ×'+inv.it[k];if(inv.key)iv+='  Ключ-карта';if(inv.uv)iv+='  УФ';if(NET.on)iv+='  Пинг '+NET.ping+' мс';$('iv').textContent=iv;
  /* objective arrow */
  const tg=OB.filter(o=>!o.off&&!o.done);let ta=null,tdd=1e9;for(const o of tg){const d=Math.hypot(o.x-P.x,o.z-P.z);if(d<tdd){tdd=d;ta=o}}
  if(ta&&sv.hint){show('arr',1);const a=angDiff(P.yaw,Math.atan2(-(ta.x-P.x),-(ta.z-P.z)));$('arr').firstChild.style.transform='rotate('+(-a)+'rad)';$('arr').lastChild.textContent=Math.round(tdd)+' м'}else show('arr',0);
@@ -312,13 +319,13 @@ function buildSparks(){const n=200,g=new THREE.BufferGeometry(),p=new Float32Arr
  SP=new THREE.Points(g,new THREE.PointsMaterial({color:0xffb050,size:.05,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false}));SP.userData={v:new Float32Array(n*3),l:new Float32Array(n)};SP.frustumCulled=false;S.add(SP)}
 
 /* ---------- UI: notes, keypad, panels ---------- */
-function note(ti,x,cb){uiOpen=1;try{document.exitPointerLock()}catch(e){}show('pn',1);$('pc').onclick=null;$('pc').innerHTML='<h2>'+ti+'</h2><div class="note">'+x+'</div><button id="nx">Закрыть</button>';SFX.pick();
+function note(ti,x,cb){if(NET.remote){cb&&cb();return}uiOpen=1;$('pc').dataset.owner='n';try{document.exitPointerLock()}catch(e){}show('pn',1);$('pc').onclick=null;$('pc').innerHTML='<h2>'+ti+'</h2><div class="note">'+x+'</div><button id="nx">Закрыть</button>';SFX.pick();
  $('nx').onclick=()=>{show('pn',0);uiOpen=0;relock();if(cb)cb()}}
-function keypad(cb){uiOpen=1;try{document.exitPointerLock()}catch(e){}show('pn',1);let v='';const c=$('pc');c.innerHTML='<h2>Пульт</h2><div id="kd">____</div><div id="kp">'+[1,2,3,4,5,6,7,8,9,'⌫',0,'OK'].map(k=>'<button data-v="'+k+'">'+k+'</button>').join('')+'</div><button data-v="x">Отмена</button>';
+function keypad(cb){uiOpen=1;$('pc').dataset.owner='n';try{document.exitPointerLock()}catch(e){}show('pn',1);let v='';const c=$('pc');c.innerHTML='<h2>Пульт</h2><div id="kd">____</div><div id="kp">'+[1,2,3,4,5,6,7,8,9,'⌫',0,'OK'].map(k=>'<button data-v="'+k+'">'+k+'</button>').join('')+'</div><button data-v="x">Отмена</button>';
  const upd=()=>$('kd').textContent=(v+'____').slice(0,4);c.onclick=e=>{const b=e.target.closest('button');if(!b)return;const k=b.dataset.v;if(k===undefined)return;beep(900,.05,'square',.08);
   if(k==='x'){show('pn',0);uiOpen=0;relock();return}if(k==='⌫')v=v.slice(0,-1);else if(k==='OK'){show('pn',0);uiOpen=0;relock();cb(v===code);return}else if(v.length<4)v+=k;upd()}}
 function relock(){if(mode==='play'&&!touch)try{const q=R.domElement.requestPointerLock();q&&q.catch&&q.catch(()=>{})}catch(e){}}
-function panel(k){show('pn',1);const c=$('pc');c.onclick=null;let h='';
+function panel(k){show('pn',1);const c=$('pc');c.onclick=null;c.dataset.owner=k;if(k==='o'||k==='f')return panelNet(k);let h='';
  if(k==='s')h='<h2>Скины</h2><p>Монеты: '+sv.coins+'</p>'+SK.map((s,i)=>'<button data-s="'+i+'">'+s.n+(sv.own.includes(i)?(sv.skin===i?' — выбран':''):' — '+s.c+' монет')+'</button>').join('')+'<p id="pm"></p>';
  else if(k==='g')h='<h2>Настройки</h2><h3>Графика</h3>'+Q.map((q,i)=>'<button data-q="'+i+'">'+q.n+(sv.q===i?' — выбрано':'')+'</button>').join('')+
   '<label>Чувствительность обзора <input type="range" id="sS" min="30" max="250" value="'+(sv.sens*100|0)+'"></label><label>Громкость <input type="range" id="sV" min="0" max="100" value="'+(sv.vol*100|0)+'"></label>'+
@@ -333,25 +340,38 @@ function panel(k){show('pn',1);const c=$('pc');c.onclick=null;let h='';
   if(d.m!==undefined){show('pn',0);return loading(()=>startMission(+d.m))}
   if(d.s!==undefined){const i=+d.s,s=SK[i];if(!sv.own.includes(i)){if(sv.coins<s.c){$('pm').textContent='Не хватает монет: нужно '+s.c;return}sv.coins-=s.c;sv.own.push(i)}setSkin(i);$('cn').textContent='Монеты: '+sv.coins;panel('s')}}}
 function loading(fn){show('load',1);$('lt').textContent='Подготовка уровня…';$('lb').style.width='100%';setTimeout(()=>{try{fn()}finally{show('load',0)}},60)}
-function pause(on){if(mode!=='play'&&mode!=='pause')return;if(on){if(uiOpen)return;mode='pause';try{document.exitPointerLock()}catch(e){}show('pause',1);
+function pause(on){if(NET.on&&(mode==='play'||mode==='spec')){if(on){if(uiOpen)return;NET.paused=1;try{document.exitPointerLock()}catch(e){}show('pause',1);
+  $('pac').innerHTML='<h2>Меню</h2><p>Кооператив: игра продолжается, монстр не ждёт.</p><button id="pR">Продолжить</button><button id="pG">Настройки</button><button id="pM">Покинуть игру</button>';
+  $('pR').onclick=()=>pause(0);$('pG').onclick=()=>panel('g');$('pM').onclick=()=>{show('pause',0);toMenu()}}
+  else{NET.paused=0;show('pause',0);show('pn',0);relock()}return}
+ if(mode!=='play'&&mode!=='pause')return;if(on){if(uiOpen)return;mode='pause';try{document.exitPointerLock()}catch(e){}show('pause',1);
   $('pac').innerHTML='<h2>Пауза</h2><p>'+(mi+1)+'. '+md.n+'</p><button id="pR">Продолжить</button><button id="pG">Настройки</button><button id="pRs">Начать миссию заново</button><button id="pM">Выйти в меню</button>';
   $('pR').onclick=()=>pause(0);$('pG').onclick=()=>panel('g');$('pRs').onclick=()=>{show('pause',0);loading(()=>startMission(mi))};$('pM').onclick=()=>{show('pause',0);toMenu()}}
  else{show('pause',0);show('pn',0);mode='play';relock()}}
 
 /* ---------- end of mission ---------- */
-function finish(win){if(mode!=='play'&&mode!=='pause')return;mode='end';try{document.exitPointerLock()}catch(e){}show('hud',0);show('tc',0);show('pn',0);uiOpen=0;
+function finish(win){if(mode!=='play'&&mode!=='pause'&&mode!=='spec')return;
+ if(!win&&NET.on&&NET.rp&&!NET.rp.dead&&!P.specd){P.dead=1;P.specd=1;nsend('d',{});enterSpec();return}
+ const co=NET.room&&NET.ingame,host=NET.host;mode='end';NET.on=0;NET.cl=0;NET.ingame=0;NET.paused=0;if(NET.av){S.remove(NET.av.root);NET.av=null}$('pb').classList.add('hide');
+ try{document.exitPointerLock()}catch(e){}show('hud',0);show('tc',0);show('pn',0);show('pause',0);uiOpen=0;$('blk').style.opacity=0;
  let ti,tx,r;const last=mi===MS.length-1;
  if(!win){[ti,tx]=END.dead;r=si*10}else{r=60+(mi/6|0)*25+(sv.done[mi]?0:40);sv.done[mi]=1;sv.prog=Math.max(sv.prog,Math.min(23,mi+1));
   if(last){const k=sv.lore.length>=18?'truth':'free';[ti,tx]=END[k];r+=200;if(k==='truth')r+=100}else{ti='Миссия пройдена: '+md.n;tx=md.out}}
  sv.coins+=r;put();
- $('ec').innerHTML='<h2>'+ti+'</h2><p>'+tx+'</p><p>Награда: '+r+' монет. Всего: '+sv.coins+'</p>'+(win&&!last?'<button id="eN">Следующая миссия</button>':'')+'<button id="eR">'+(win?'Переиграть':'Ещё раз')+'</button><button id="eM">В меню</button>';show('end',1);
- if($('eN'))$('eN').onclick=()=>loading(()=>startMission(mi+1));$('eR').onclick=()=>loading(()=>startMission(mi));$('eM').onclick=toMenu}
+ let bt;if(co&&!host)bt='<p>Хост выберет следующую миссию. Вы остаётесь в комнате.</p><button id="eL">В лобби</button>';
+ else if(co)bt=(win&&!last?'<button id="eN">Следующая миссия (вместе)</button>':'')+'<button id="eR">'+(win?'Переиграть':'Ещё раз')+'</button><button id="eL">В лобби</button>';
+ else bt=(win&&!last?'<button id="eN">Следующая миссия</button>':'')+'<button id="eR">'+(win?'Переиграть':'Ещё раз')+'</button>';
+ $('ec').innerHTML='<h2>'+ti+'</h2><p>'+tx+'</p><p>Награда: '+r+' монет. Всего: '+sv.coins+'</p>'+bt+'<button id="eM">В меню</button>';show('end',1);
+ if(co){if($('eN'))$('eN').onclick=()=>{NET.mis=Math.min(23,mi+1);netStartFromEnd()};if($('eR'))$('eR').onclick=()=>{NET.mis=mi;netStartFromEnd()};if($('eL'))$('eL').onclick=()=>{toMenu();panel('o')}}
+ else{if($('eN'))$('eN').onclick=()=>loading(()=>startMission(mi+1));$('eR').onclick=()=>loading(()=>startMission(mi))}
+ $('eM').onclick=toMenu;showInv()}
+function netStartFromEnd(){if(!partner()){$('ec').insertAdjacentHTML('afterbegin','<p style="color:#e88">Напарник вышел из комнаты.</p>');return}netHostStart()}
 const MENU_MD={seed:7,w:18,h:9,main:'hall',rooms:['office'],loops:0,sign:'НУЛЕВАЯ',mon:{d:1e9,sp:1},steps:[]};
-function toMenu(){mode='menu';show('menu',1);show('hud',0);show('tc',0);show('end',0);show('pn',0);show('pause',0);editor(0);try{document.exitPointerLock()}catch(e){}
+function toMenu(){if(NET.ingame||NET.on){netExitGame();roomLeave()}mode='menu';show('menu',1);show('hud',0);show('tc',0);show('end',0);show('pn',0);show('pause',0);editor(0);try{document.exitPointerLock()}catch(e){}
  clearLevel();md=MENU_MD;const L=buildLevel(MENU_MD);const hall=L.rooms[0];MG.visible=false;if(PHM)PHM.visible=false;
  const hx=(hall.x+4)*CS,hz=(hall.y+2.2)*CS;if(hum){hum.visible=true;hum.position.set(hx,0,hz);hum.rotation.y=0}S_ENV.menu=[hx,hz];
  S.add(fl);fl.position.set(hx-3,3.4,hz+4.5);fl.target.position.set(hx,.9,hz);S.add(fl.target);fl.intensity=4.5;fl.angle=.6;fl.penumbra=.7;fl.distance=20;fl.color.setHex(0xffe2c0);HAND.visible=false;flCone.visible=false;
- cam.fov=42;cam.updateProjectionMatrix();$('cn').textContent='Монеты: '+sv.coins;$('vig').classList.remove('h');S.fog.density=.03;MComp.uniforms.ca.value=0;MComp.uniforms.dmg.value=0;MComp.uniforms.vg.value=.55}
+ cam.fov=42;cam.updateProjectionMatrix();$('cn').textContent='Монеты: '+sv.coins;$('vig').classList.remove('h');S.fog.density=.03;MComp.uniforms.ca.value=0;MComp.uniforms.dmg.value=0;MComp.uniforms.vg.value=.55;showInv()}
 function menuCam(){const[hx,hz]=S_ENV.menu||[0,0];if(hum)hum.rotation.y=PI+Math.sin(t*.35)*.3;cam.position.set(hx+Math.sin(t*.2)*.25,1.25,hz+3.9);cam.lookAt(hx-(innerWidth>innerHeight?1.1:0),.95,hz);cam.rotation.order='YXZ'}
 
 /* ---------- quality & resize, adaptive resolution ---------- */
@@ -384,11 +404,11 @@ function edState(b){const r=b.getBoundingClientRect();return{x:r.left/innerWidth
 const act=()=>{if(P.hide)P.lk.f();else if(cur&&!cur.hold)cur.f()},tog=()=>{if(P.bat>0){P.light=!P.light;beep(1800,.03,'square',.05)}},crch=()=>{if(!P.hide)P.crouch=!P.crouch};
 const useB=()=>{if(inv.bat<1)return msg('Нет запасных батарей');if(P.bat>70)return msg('Батарея ещё заряжена');inv.bat--;P.bat=100;P.light=true;msg('Батарея заменена')};
 const useM=()=>{if(inv.med<1)return msg('Нет аптечек');if(P.hp>=100)return msg('Ты здоров');inv.med--;P.hp=Math.min(100,P.hp+50);P.san=Math.min(100,P.san+15);msg('Аптечка использована')};
-addEventListener('keydown',e=>{if(e.repeat&&e.code!=='KeyE')return;K[e.code]=1;if(e.code==='Escape'||e.code==='KeyP'){if(mode==='play')pause(1);else if(mode==='pause')pause(0);return}
+addEventListener('keydown',e=>{if(e.repeat&&e.code!=='KeyE')return;K[e.code]=1;if(e.code==='Escape'||e.code==='KeyP'){if(NET.on&&(mode==='play'||mode==='spec')){NET.paused?pause(0):pause(1);return}if(mode==='play')pause(1);else if(mode==='pause')pause(0);return}
  if(mode!=='play'||uiOpen)return;if(e.code==='KeyE'&&!e.repeat)act();if(e.code==='KeyF')tog();if(e.code==='KeyC'||e.code==='ControlLeft')crch();if(e.code==='KeyQ'||e.code==='KeyR')useB();if(e.code==='KeyH')useM()});
 addEventListener('keyup',e=>{K[e.code]=0});addEventListener('blur',()=>{K={}});
 document.addEventListener('pointerlockchange',()=>{if(!document.pointerLockElement&&mode==='play'&&!uiOpen&&!touch)pause(1)});
-addEventListener('mousemove',e=>{if(mode==='play'&&!uiOpen&&(document.pointerLockElement||e.buttons&1)){const k=.0022*sv.sens;P.yaw-=e.movementX*k;P.pit=clamp(P.pit-e.movementY*k,-1.4,1.4)}});
+addEventListener('mousemove',e=>{if(mode==='spec'&&(e.buttons&1))NET.specA-=e.movementX*.004;if(mode==='play'&&!uiOpen&&!NET.paused&&(document.pointerLockElement||e.buttons&1)){const k=.0022*sv.sens;P.yaw-=e.movementX*k;P.pit=clamp(P.pit-e.movementY*k,-1.4,1.4)}});
 R.domElement.addEventListener('click',()=>{if(mode==='play'&&!touch&&!uiOpen)try{const q=R.domElement.requestPointerLock();q&&q.catch&&q.catch(()=>{})}catch(e){}});
 addEventListener('touchstart',e=>{if(mode!=='play'||uiOpen||$('tc').classList.contains('ed'))return;for(const q of e.changedTouches){if(q.target.closest&&q.target.closest('button'))continue;
  if(q.clientX<innerWidth*.45&&T.j==null){T.j=q.identifier;T.ox=q.clientX;T.oy=q.clientY;const j=$('jr');j.style.display='block';j.style.left=q.clientX+'px';j.style.top=q.clientY+'px'}
@@ -396,18 +416,21 @@ addEventListener('touchstart',e=>{if(mode!=='play'||uiOpen||$('tc').classList.co
 addEventListener('touchmove',e=>{if(mode!=='play')return;for(const q of e.changedTouches){
  if(q.identifier===T.j){let dx=(q.clientX-T.ox)/50,dy=(q.clientY-T.oy)/50;const l=Math.hypot(dx,dy);if(l>1){dx/=l;dy/=l}T.x=Math.abs(dx)<.12?0:dx;T.y=Math.abs(dy)<.12?0:dy;$('kn').style.transform='translate('+dx*34+'px,'+dy*34+'px)'}
  else if(q.identifier===T.l){const k=.006*sv.sens;P.yaw-=(q.clientX-T.lx)*k;P.pit=clamp(P.pit-(q.clientY-T.ly)*k,-1.4,1.4);T.lx=q.clientX;T.ly=q.clientY}}if(!e.target.closest||!e.target.closest('.card'))e.preventDefault()},{passive:false});
-const tend=e=>{for(const q of e.changedTouches){if(q.identifier===T.j){T.j=null;T.x=T.y=0;$('jr').style.display='none';$('kn').style.transform=''}if(q.identifier===T.l)T.l=null}};
+let spd=null;addEventListener('touchstart',e=>{if(mode==='spec'&&!(e.target.closest&&e.target.closest('button')))spd=e.touches[0].clientX},{passive:true});
+addEventListener('touchmove',e=>{if(mode==='spec'&&spd!=null){const x=e.touches[0].clientX;NET.specA-=(x-spd)*.008;spd=x}},{passive:true});
+const tend=e=>{spd=null;for(const q of e.changedTouches){if(q.identifier===T.j){T.j=null;T.x=T.y=0;$('jr').style.display='none';$('kn').style.transform=''}if(q.identifier===T.l)T.l=null}};
 addEventListener('touchend',tend);addEventListener('touchcancel',tend);
 document.querySelectorAll('#tc button').forEach(b=>{const k=b.dataset.k,up=()=>{if(k==='run')T.run=0;if(k==='e')T.act=0};
  b.addEventListener('pointerdown',e=>{if($('tc').classList.contains('ed'))return;e.preventDefault();if(k==='p'){mode==='play'?pause(1):0;return}if(mode!=='play'||uiOpen)return;if(k==='run')T.run=1;else if(k==='e'){T.act=1;act()}else if(k==='f')tog();else if(k==='c')crch();else if(k==='b')useB();else if(k==='m')useM()});
  b.addEventListener('pointerup',up);b.addEventListener('pointercancel',up);b.addEventListener('pointerleave',up)});
-$('bP').onclick=()=>{audio();panel('c')};$('bO').onclick=()=>panel('o');$('bS').onclick=()=>panel('s');$('bG').onclick=()=>panel('g');
+$('bP').onclick=()=>{audio();panel('c')};$('bO').onclick=()=>panel('o');$('bF').onclick=()=>panel('f');$('bS').onclick=()=>panel('s');$('bG').onclick=()=>panel('g');
 $('ht').textContent=touch?'Левая часть экрана: движение. Правая: поворот камеры. Кнопки настраиваются в «Настройки → Редактор кнопок».':'WASD ходьба, Shift бег, C присесть, F фонарь, E действие (удерживай для долгих), Q батарея, H аптечка, Esc пауза.';
 
 /* ---------- main loop ---------- */
 const clk=new THREE.Clock();
 function loop(){requestAnimationFrame(loop);const dt=Math.min(clk.getDelta(),.05);t+=dt;
- if(mode==='play'&&!uiOpen)play(dt);else if(mode==='scare')scareUpdate(dt);else if(mode==='menu'){menuCam();if(humMix)humMix.update(dt)}
+ if(NET.on&&(mode==='play'||mode==='scare'||mode==='spec'))netUpdate(dt);
+ if(mode==='play'&&(!uiOpen||NET.on))play(dt);else if(mode==='scare')scareUpdate(dt);else if(mode==='spec')specTick(dt);else if(mode==='menu'){menuCam();if(humMix)humMix.update(dt)}
  if(LV){lights(dt);sparks(dt);cull(dt);if(WATER&&WATER.normalMap){WATER.normalMap.offset.x=t*.02;WATER.normalMap.offset.y=t*.013}}
  if(dust){const u=dust.material.uniforms;u.tm.value=t;u.cp.value.copy(cam.position);cam.getWorldDirection(u.cd.value);u.li.value=mode==='play'&&P.light?1:.15}
  setListener();adapt(dt);render()}

@@ -63,7 +63,7 @@ function genLevel(md){const r=RNG(md.seed),W=md.w,H=md.h,N=W*H,g=new Uint8Array(
   const step=(xx,yy)=>{const k=id(xx,yy);if(!g[k]){g[k]=1;ty[k]=6}};
   if(hx){while(x!==tx){x+=Math.sign(tx-x);step(x,y)}while(y!==tyy){y+=Math.sign(tyy-y);step(x,y)}}
   else{while(y!==tyy){y+=Math.sign(tyy-y);step(x,y)}while(x!==tx){x+=Math.sign(tx-x);step(x,y)}}};
- const inT=[0],E=[];const d2=(a,b)=>Math.hypot(a.cx-b.cx,a.cy-b.cy);
+ const inT=[0],E=[];const d2=(a,b)=>Math.sqrt((a.cx-b.cx)*(a.cx-b.cx)+(a.cy-b.cy)*(a.cy-b.cy));
  while(inT.length<rooms.length){let best=null,bd=1e9;for(const i of inT)for(let j=0;j<rooms.length;j++){if(inT.includes(j))continue;const d=d2(rooms[i],rooms[j]);if(d<bd){bd=d;best=[i,j]}}inT.push(best[1]);E.push(best)}
  for(let l=0;l<(md.loops||1);l++){const a=r()*rooms.length|0,b=r()*rooms.length|0;if(a!==b)E.push([a,b])}
  for(const[a,b]of E)carve(rooms[a],rooms[b]);

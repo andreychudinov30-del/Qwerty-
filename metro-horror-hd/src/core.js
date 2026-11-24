@@ -3,7 +3,7 @@
    METRO HORROR — Последний поезд (HD edition)
    core: utilities, save, quality, renderer, post-processing, materials
    ===================================================================== */
-const $=i=>document.getElementById(i),PI=Math.PI,TAU=PI*2,rand=Math.random;
+const $=i=>document.getElementById(i),PI=Math.PI,TAU=PI*2;let RNGF=Math.random;const rand=()=>RNGF();
 const clamp=(v,a,b)=>v<a?a:v>b?b:v,lerp=(a,b,t)=>a+(b-a)*t,sstep=(a,b,x)=>{const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t)};
 function RNG(s){s=s>>>0;return()=>{s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 const angDiff=(a,b)=>((b-a+PI*3)%TAU)-PI;
@@ -11,7 +11,7 @@ const touch='ontouchstart' in window||navigator.maxTouchPoints>0;
 const isIOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 
 /* ---------- save ---------- */
-let sv={coins:0,own:[0],skin:0,q:touch?1:2,prog:0,done:{},lay:null,sens:1,vol:.8,hint:1,lore:[],uv:0};
+let sv={coins:0,own:[0],skin:0,q:touch?1:2,prog:0,done:{},lay:null,sens:1,vol:.8,hint:1,lore:[],uv:0,name:'Выживший',net:null};
 try{Object.assign(sv,JSON.parse(localStorage.getItem('mh2')||'{}'))}catch(e){}
 if(!Array.isArray(sv.lore))sv.lore=[];if(typeof sv.done!=='object'||!sv.done)sv.done={};
 const put=()=>{try{localStorage.setItem('mh2',JSON.stringify(sv))}catch(e){}};

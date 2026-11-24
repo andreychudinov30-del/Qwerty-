@@ -57,14 +57,18 @@ input[type=range]{width:100%;accent-color:#d9902f}
 .note{font:15px/1.5 Georgia,serif;color:#d8d2c2;white-space:pre-line;background:#1a1712;border:1px solid #4a4030;border-radius:4px;padding:12px}
 #load{justify-content:center;align-items:center;gap:12px;background:#05070a;z-index:10}
 #load .br{width:220px;height:4px}#lt{font-size:13px;color:#8d9aa6}
+#invb{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 8px);transform:translateX(-50%);z-index:20;width:min(94vw,420px);border-color:#d9902f88}
+input[type=text]{font:inherit;font-size:16px;color:var(--fg);background:#0b1015;border:1px solid #ffffff30;border-radius:8px;padding:11px;min-width:0;width:100%;user-select:text;-webkit-user-select:text}
+.card small{color:#8d9aa6}
 #pb{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 6px);pointer-events:auto;font-size:12px;padding:6px 14px;opacity:.6}
 </style></head><body>
 <div id="load" class="ov"><h1>Metro Horror<small>Последний поезд</small></h1><div class="br"><i id="lb" style="background:#d9902f;width:0"></i></div><div id="lt">Загрузка ресурсов…</div></div>
 <div id="menu" class="ov hide"><h1>Metro Horror<small>Последний поезд</small></h1>
-<div class="bt"><button id="bP">Играть</button><button id="bO">Онлайн</button><button id="bS">Скины</button><button id="bG">Настройки</button><div id="cn"></div><p class="hint" id="ht"></p></div></div>
+<div class="bt"><button id="bP">Играть</button><button id="bO">Онлайн</button><button id="bF">Друзья</button><button id="bS">Скины</button><button id="bG">Настройки</button><div id="cn"></div><p class="hint" id="ht"></p></div></div>
+<div id="invb" class="card hide"></div>
 <div id="pn" class="ov hide"><div class="card" id="pc"></div></div>
 <div id="hud" class="hide"><div id="top"><div id="clk">03:47</div><div class="br"><i id="hp" style="background:#c0392b"></i></div><div class="br"><i id="st" style="background:#4fae6b"></i></div><div class="br"><i id="bt" style="background:#d9b038"></i></div><div class="br"><i id="sn" style="background:#8a6cc9"></i></div></div>
-<div id="obj"></div><div id="arr"><i></i><span></span></div><div id="iv"></div><div id="msg"></div><div id="sub"></div><div id="pr"></div><div id="hold" class="hide"><i></i></div></div>
+<button id="pb" class="hide">Выйти</button><div id="obj"></div><div id="arr"><i></i><span></span></div><div id="iv"></div><div id="msg"></div><div id="sub"></div><div id="pr"></div><div id="hold" class="hide"><i></i></div></div>
 <div id="tc" class="hide"><div id="jr"><div id="kn"></div></div>
 <button data-k="e" style="right:14px;bottom:26px;width:78px;height:78px;font-size:14px">Действие</button>
 <button data-k="f" style="right:22px;bottom:118px">Фонарь</button>
