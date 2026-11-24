@@ -302,13 +302,13 @@ function buildSparks(){const n=200,g=new THREE.BufferGeometry(),p=new Float32Arr
  SP=new THREE.Points(g,new THREE.PointsMaterial({color:0xffb050,size:.05,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false}));SP.userData={v:new Float32Array(n*3),l:new Float32Array(n)};SP.frustumCulled=false;S.add(SP)}
 
 /* ---------- UI: notes, keypad, panels ---------- */
-function note(ti,x,cb){uiOpen=1;try{document.exitPointerLock()}catch(e){}show('pn',1);$('pc').innerHTML='<h2>'+ti+'</h2><div class="note">'+x+'</div><button id="nx">Закрыть</button>';SFX.pick();
+function note(ti,x,cb){uiOpen=1;try{document.exitPointerLock()}catch(e){}show('pn',1);$('pc').onclick=null;$('pc').innerHTML='<h2>'+ti+'</h2><div class="note">'+x+'</div><button id="nx">Закрыть</button>';SFX.pick();
  $('nx').onclick=()=>{show('pn',0);uiOpen=0;relock();if(cb)cb()}}
 function keypad(cb){uiOpen=1;try{document.exitPointerLock()}catch(e){}show('pn',1);let v='';const c=$('pc');c.innerHTML='<h2>Пульт</h2><div id="kd">____</div><div id="kp">'+[1,2,3,4,5,6,7,8,9,'⌫',0,'OK'].map(k=>'<button data-v="'+k+'">'+k+'</button>').join('')+'</div><button data-v="x">Отмена</button>';
- const upd=()=>$('kd').textContent=(v+'____').slice(0,4);c.onclick=e=>{const b=e.target.closest('button');if(!b)return;const k=b.dataset.v;beep(900,.05,'square',.08);
+ const upd=()=>$('kd').textContent=(v+'____').slice(0,4);c.onclick=e=>{const b=e.target.closest('button');if(!b)return;const k=b.dataset.v;if(k===undefined)return;beep(900,.05,'square',.08);
   if(k==='x'){show('pn',0);uiOpen=0;relock();return}if(k==='⌫')v=v.slice(0,-1);else if(k==='OK'){show('pn',0);uiOpen=0;relock();cb(v===code);return}else if(v.length<4)v+=k;upd()}}
 function relock(){if(mode==='play'&&!touch)try{R.domElement.requestPointerLock()}catch(e){}}
-function panel(k){show('pn',1);const c=$('pc');let h='';
+function panel(k){show('pn',1);const c=$('pc');c.onclick=null;let h='';
  if(k==='s')h='<h2>Скины</h2><p>Монеты: '+sv.coins+'</p>'+SK.map((s,i)=>'<button data-s="'+i+'">'+s.n+(sv.own.includes(i)?(sv.skin===i?' — выбран':''):' — '+s.c+' монет')+'</button>').join('')+'<p id="pm"></p>';
  else if(k==='g')h='<h2>Настройки</h2><h3>Графика</h3>'+Q.map((q,i)=>'<button data-q="'+i+'">'+q.n+(sv.q===i?' — выбрано':'')+'</button>').join('')+
   '<label>Чувствительность обзора <input type="range" id="sS" min="30" max="250" value="'+(sv.sens*100|0)+'"></label><label>Громкость <input type="range" id="sV" min="0" max="100" value="'+(sv.vol*100|0)+'"></label>'+
