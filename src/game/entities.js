@@ -283,7 +283,7 @@ export class EntityManager {
       e.update = (dt) => { if (e.glint) e.glint.material.opacity = 0.5 + 0.5 * Math.sin(performance.now() * 0.004 + cx); };
     } else if (T === 'note') {
       e = new Interactable(g, { ...def, pos: pos.clone().setY(fy + (def.h ?? 0.01)), prompt: 'Прочитать' });
-      const paper = new THREE.Mesh(PG.paperGeometry(), plainMat('paper')); paper.scale.setScalar(1.3); e.object.add(paper);
+      const paper = new THREE.Mesh(PG.paperGeometry(), new THREE.MeshStandardMaterial({ color: 0xd8cfb4, emissive: 0x3a3426, roughness: 0.9, side: THREE.DoubleSide })); paper.scale.setScalar(2.2); e.object.add(paper);
       const gl = glint(); gl.position.y = 0.08; gl.scale.setScalar(0.18); e.object.add(gl);
       e.use = () => { g.hud.showNote(def.title, def.text, def.sign); g.collectNote(def.noteId || def.id); g.mission?.event('read:' + (def.id || def.noteId)); if (def.id) g.mission?.event('use:' + def.id); };
     } else if (T === 'locker') {
