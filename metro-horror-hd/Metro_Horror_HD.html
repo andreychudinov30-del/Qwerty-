@@ -5236,13 +5236,13 @@ function onStart(p){if(!p||NET.host||!NET.ch)return;if(mode==='play'&&NET.ingame
 /* ---------- in-game sync ---------- */
 function netReset(){NET.pbuf.length=0;NET.mbuf.length=0;NET.off=null;NET.delay=.1;NET.jit=.01;NET.lastArr=0;NET.partnerGone=0;NET.partnerSeen=!!partner();NET.sendT=0;NET.syncT=2;NET.pingT=1;NET.specA=0;NET.pst='idle';NET.msgs=0;
  NET.rp={x:0,z:0,yaw:0,pit:0,hide:0,light:true,bat:60,crouch:0,moving:0,run:0,lk:null,dead:0,san:100,uvT:0,shk:0,h:1.65,hp:100};
- if(NET.av){S.remove(NET.av.root);NET.av=null}NET.lastRecv=performance.now()/1000+25}
+ if(NET.av){S.remove(NET.av.root);NET.av=null}NET.silent=-45}
 const rnd2=v=>Math.round(v*100)/100;
 function sendSt(now){const f=(P.moving?1:0)|(P.run?2:0)|(P.crouch?4:0)|(P.light&&P.bat>0?8:0)|(P.hide?16:0)|(P.dead?32:0);
  const o={t:now,x:rnd2(P.x),z:rnd2(P.z),y:rnd2(P.yaw),p:rnd2(P.pit),f,l:P.hide&&P.lk&&P.lk.id?P.lk.id:'',h:rnd2(P.h)};
  if(NET.host){const m=MO,i=MST.indexOf(m.st);o.m={x:rnd2(m.x),z:rnd2(m.z),y:rnd2(m.yaw),s:i<0?0:i,v:rnd2(m.sp||0),c:m.crawl?1:0}}
  nsend('st',o);NET.msgs++}
-function onSt(p){if(!p||typeof p.t!=='number')return;const now=performance.now()/1000;NET.lastRecv=now;
+function onSt(p){if(!p||typeof p.t!=='number')return;const now=performance.now()/1000;NET.lastRecv=now;NET.silent=0;
  if(NET.lastArr){const gap=now-NET.lastArr;NET.jit+=(Math.abs(gap-1/15)-NET.jit)*.1;NET.delay=clamp(.075+NET.jit*2.5,.09,.26)}NET.lastArr=now;
  const o=now-p.t;NET.off=NET.off==null||o<NET.off?o:NET.off+(o-NET.off)*.02;
  NET.pbuf.push({t:p.t,x:p.x,z:p.z,y:p.y,p:p.p,f:p.f,l:p.l,h:p.h});if(NET.pbuf.length>40)NET.pbuf.shift();
@@ -5262,7 +5262,7 @@ function netUpdate(dt){const now=performance.now()/1000;
  if(NET.cl){const m=sample(NET.mbuf,rt);if(m){MO.x=m.x;MO.z=m.z;MO.yaw=m.y;MO.sp=m.v||0;MO.crawl=m.c?1:0;MO.st=MST[m.s]||'patrol'}}
  NET.syncT-=dt;if(NET.syncT<=0){NET.syncT=2.5;nsend('sync',mkSync())}
  NET.pingT-=dt;if(NET.pingT<=0){NET.pingT=2;nsend('png',{t:performance.now()})}
- if(NET.on&&NET.lastRecv>0&&now-NET.lastRecv>7){msg('Связь с напарником потеряна');partnerLeft()}}
+ NET.silent+=dt;if(NET.on&&NET.silent>8){msg('Связь с напарником потеряна');partnerLeft()}}
 /* object actions are broadcast by stable id and replayed identically on the other side */
 function netI(o){if(NET.on&&!NET.remote&&o&&o.id&&!o.local)nsend('a',{id:o.id})}
 function applyI(o){NET.remote=1;try{if(o.m&&!o.obj){o.off=1;o.m.visible=false;o.s.visible=false;SFX.pick()}else if(o.rf)o.rf();else if(o.done)o.done();else o.f()}catch(e){console.warn('applyI',e)}finally{NET.remote=0}}
