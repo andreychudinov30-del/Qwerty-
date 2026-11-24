@@ -139,7 +139,7 @@ function wagon(par,x,z,len,openSide,head,seed,dark){const A=new Acc,B=new Acc,L=
  const roof=new THREE.CylinderGeometry(2.1,2.1,L,24,1,true,-.72,1.44);roof.rotateZ(PI/2);roof.rotateX(-PI/2);roof.translate(0,h-.25-2.1*Math.cos(.72),0);A.add(roof,'train',0,0,0,0);
  for(const s of[-1,1])A.box(dark?M.dark:M.lamp,x0+.6,h-.33,s*.5-.08,x1-.6,h-.3,s*.5+.08);
  for(let i=-3;i<=3;i++)A.add(boxGeo(.05,1.85,.05),M.rail,i*L/7.5+.6,fl+.92,(i%2?.5:-.5),0);
- A.box(M.rubber,x0+.2,-.02,z0+.1,x1-.2,fl,z1-.1);A.box(M.dark,x0+.3,.02,z0-.02,x1-.3,.55,z0+.08).box(M.dark,x0+.3,.02,z1-.08,x1-.3,.55,z1+.02);
+ A.box(M.rubber,x0+.2,fl-.03,z0+.1,x1-.2,fl+.012,z1-.1);A.box(M.dark,x0+.3,.02,z0-.02,x1-.3,.55,z0+.08).box(M.dark,x0+.3,.02,z1-.08,x1-.3,.55,z1+.02);
  for(const bx of[x0+2.2,x1-2.2])for(const s of[-1,1])for(const wx2 of[-.7,.7]){const wh=new THREE.CylinderGeometry(.42,.42,.12,18);wh.rotateX(PI/2);A.add(wh,M.rail,bx+wx2,.42,s*.76,0)}
  for(const e of[x0-.25,x1+.25])A.box(M.dark,Math.min(e,e+Math.sign(e)*.3),.6,-.12,Math.max(e,e+Math.sign(e)*.3)+.01,.85,.12);
  if(head){A.box(M.head,x1+.02,.75,-1.05,x1+.08,.95,-.8).box(M.head,x1+.02,.75,.8,x1+.08,.95,1.05);A.box(M.lampW,x1+.02,2.55,-.15,x1+.08,2.7,.15)}
