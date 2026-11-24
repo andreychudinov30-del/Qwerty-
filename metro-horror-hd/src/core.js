@@ -132,6 +132,9 @@ const MD={
  dmg:{s:'damaged_concrete_floor',tint:[85,87,90],rep:3,wet:1}};
 const M={};
 for(const k in MD){const d=MD[k];M[k]=new THREE.MeshStandardMaterial({color:0xffffff,roughness:1,metalness:k==='train'?.55:k==='metal'||k==='door'?.8:.0})}
+M.floor.roughness=.7;M.dmg.roughness=.85;M.tile.roughness=.78;M.lab.roughness=.72;
+const grimeT=(()=>{const c=cvs(256,64),g=c.getContext('2d'),r=RNG(9);for(let x=0;x<256;x++){const h=18+r()*30+Math.sin(x*.05)*10,q=g.createLinearGradient(0,64-h,0,64);q.addColorStop(0,'rgba(8,7,6,0)');q.addColorStop(1,'rgba(8,7,6,'+(.55+r()*.3)+')');g.fillStyle=q;g.fillRect(x,64-h,1,h)}return ctex(c,1,1)})();
+M.grime=new THREE.MeshBasicMaterial({map:grimeT,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2});
 M.ceil=M.conc.clone();M.ceil.color.setRGB(.5,.5,.5);
 M.rail=new THREE.MeshStandardMaterial({color:0x6b6e72,roughness:.32,metalness:.95});
 M.dark=new THREE.MeshStandardMaterial({color:0x1d2024,roughness:.7,metalness:.4});

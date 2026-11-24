@@ -24,7 +24,7 @@ function prepModel(name,gl){const root=gl.scene;root.updateMatrixWorld(true);con
  root.traverse(o=>{if(o.isMesh&&!o.isSkinnedMesh){const g=deq(o.geometry.clone());g.applyMatrix4(o.matrixWorld);if(!g.attributes.normal)g.computeVertexNormals();g.computeBoundingBox();bb.union(g.boundingBox);
   const m=o.material;if(m.map)m.map.anisotropy=MAXANI;m.envMapIntensity=.6;parts.push({g,m})}});
  const c=bb.getCenter(new THREE.Vector3());for(const p of parts){p.g.translate(-c.x,-bb.min.y,-c.z);if(!p.g.attributes.uv2&&p.g.attributes.uv)p.g.setAttribute('uv2',p.g.attributes.uv);p.g.computeBoundingSphere()}
- const sz=bb.getSize(new THREE.Vector3());MOD[name]={parts,sz,r:Math.hypot(sz.x,sz.z)/2+.1}}
+ let sz=bb.getSize(new THREE.Vector3());if(sz.y>3.5){const k=2/sz.y;for(const p of parts){p.g.scale(k,k,k);p.g.computeBoundingSphere()}sz.multiplyScalar(k)}MOD[name]={parts,sz,r:Math.hypot(sz.x,sz.z)/2+.1}}
 /* single model instance as group (for unique objects) */
 function modelMesh(name,s){const md=MOD[name];if(!md)return null;const g=new THREE.Group;for(const p of md.parts){const m=new THREE.Mesh(p.g,p.m);m.castShadow=m.receiveShadow=true;g.add(m)}if(s)g.scale.setScalar(s);return g}
 
@@ -182,6 +182,7 @@ function buildLevel(md){const L=genLevel(md);LV=L;C.length=0;PH.clear();I.length
    const wm=WM[t];const band=(t==='hall'||t==='lab')&&!y0?2.6:0;
    if(band)Q4(a,'tile',[[pa[0],0,pa[1]],[pb[0],0,pb[1]],[pb[0],band,pb[1]],[pa[0],band,pa[1]]],n,MD.tile.rep);
    Q4(a,y0?wm:wm,[[pa[0],Math.max(y0,band),pa[1]],[pb[0],Math.max(y0,band),pb[1]],[pb[0],h,pb[1]],[pa[0],h,pa[1]]],n,MD[wm].rep);
+   if(!y0){const o=.012;Q4(a,M.grime,[[pa[0]+n[0]*o,0,pa[1]+n[2]*o],[pb[0]+n[0]*o,0,pb[1]+n[2]*o],[pb[0]+n[0]*o,1.1,pb[1]+n[2]*o],[pa[0]+n[0]*o,1.1,pa[1]+n[2]*o]],n,1.1)}
    if(!y0){const mx=(pa[0]+pb[0])/2,mz=(pa[1]+pb[1])/2,ry=Math.atan2(n[0],n[2]);
     /* pipes & cables along walls */
     if(t==='tun'||t==='flood'||t==='tech'||t==='depot'){putI('pipe',GEO.pipe,M.metal,mx+n[0]*.2,h-.55,mz+n[2]*.2,ry+PI/2,1,1,CS);if(t!=='tech')putI('pipe2',GEO.pipe,M.metal,mx+n[0]*.32,h-.95,mz+n[2]*.32,ry+PI/2,.7,.7,CS)}
@@ -221,7 +222,7 @@ function buildLevel(md){const L=genLevel(md);LV=L;C.length=0;PH.clear();I.length
   else if(t==='lab'){for(let y=rm.y;y<rm.y+rm.h;y++)for(let x=rm.x;x<rm.x+rm.w;x+=2){const lx=wx(x),lz=wx(y);acc(lx,lz).add(GEO.lampP,(x+y)%3?M.lamp:M.dark,lx,h-.06,lz,PI/2);if((x+y)%3)lamp(lx,h-.2,lz,0xd8f0ff,.8,r()<.35?1:0,root)}}
   else{hang(cx,h,cz,root,r)}
   /* wall props */
-  const ws=wallSpots(rm),types=PT[t]||PT.tech;for(const[x,y,dx,dy]of ws){if(r()>(t==='hall'?.22:.42)||occ[id(x,y)])continue;const nm=types[r()*types.length|0],md2=MOD[nm];if(!md2)continue;
+  const ws=wallSpots(rm),types=PT[t]||PT.tech;for(const[x,y,dx,dy]of ws){if(r()>(t==='hall'?.32:.58)||occ[id(x,y)])continue;const nm=types[r()*types.length|0],md2=MOD[nm];if(!md2)continue;
    const ry=Math.atan2(-dx,-dy)+(r()-.5)*.25,dep=Math.min(md2.sz.z,md2.sz.x),px=wx(x)+dx*(CS/2-dep/2-.12),pz=wx(y)+dy*(CS/2-dep/2-.12);
    const lat=(r()-.5)*.8;putProp(nm,px+dy*lat,0,pz+dx*lat,ry,1,1);occ[id(x,y)]=1;
    if(nm==='metal_office_desk'&&r()<.6){const top=md2.sz.y;putProp(t==='lab'&&MOD.chemistry_set?'chemistry_set':'russian_food_cans_01',px,top,pz,ry,1,0)}}

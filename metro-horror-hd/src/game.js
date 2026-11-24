@@ -129,7 +129,7 @@ function nextStep(){si++;stepT=0;if(si>=md.steps.length){finish(1);return}const 
  else if(s.k==='read'){const p=spotPick({lo:s.A?0:.3,A:s.A,sp:3});addItem('doc',p,'Прочитать: '+s.ti,()=>{note(s.ti,s.x.replace('{CODE}',code),done)},1)}
  else if(s.k==='key'){addItem('ky',spotPick({lo:.35,sp:3}),'Взять ключ-карту',()=>{inv.key=1;msg('Ключ-карта. Подходит к запертой двери');done()},1)}
  else if(s.k==='survive'){s.p=s.s;MO.huntT=0;if(MO.st==='idle')spawnFar()}
- else if(s.k==='exit'||s.k==='escape'){exitO.open=1;SFX.door();OB.push({x:exitO.x,z:exitO.z,obj:1,exit:1});if(s.k==='escape')spawnBehind(13)}
+ else if(s.k==='exit'||s.k==='escape'){exitO.open=1;SFX.door();OB.push({x:exitO.x,z:exitO.z,obj:1,exit:1});if(s.k==='escape')spawnBehind(19)}
  else if(s.k==='radio'){SFX.radio();sub(s.x,7000);setTimeout(()=>{if(stp()===s&&mode!=='end')done()},3500)}
  else if(s.k==='stun'){if(MO.st==='idle')spawnFar();}
  $('obj').innerHTML='<b>'+(mi+1)+'. '+md.n.toUpperCase()+'</b>'+T2}
@@ -180,15 +180,15 @@ function monUpdate(dt){const m=MO,dx=P.x-m.x,dz=P.z-m.z,d=Math.hypot(dx,dz);
  /* goal & speed */
  let gx=m.x,gz=m.z,sp=1.55;const mult=md.mon.sp;
  if(m.st==='patrol'){if(!m.pg||Math.hypot(m.x-m.pg[0],m.z-m.pg[1])<1.8){m.pg=freeSpot(10,34,0)||[m.x+(rand()-.5)*10,m.z+(rand()-.5)*10]}gx=m.pg[0];gz=m.pg[1]}
- else if(m.st==='chase'){gx=m.lx;gz=m.lz;sp=3.85;if(d<6&&m.lunge<-2&&rand()<.02)m.lunge=.55;if(m.lunge>0)sp=6.4;if(d<2.2&&m.cool>0)sp=.4;
+ else if(m.st==='chase'){gx=m.lx;gz=m.lz;sp=3.85;if(d<6&&m.lunge<-2&&rand()<.02)m.lunge=.55;if(m.lunge>0)sp=5.6;if(d<2.2&&m.cool>0)sp=.4;
   if(Math.hypot(m.x-gx,m.z-gz)<1.2&&m.lost>0)Object.assign(m,{st:'search',sw:0,n:0})}
  else if(m.st==='search'){gx=m.lx;gz=m.lz;sp=2.35;if(Math.hypot(m.x-gx,m.z-gz)<1.4){sp=0;m.sw+=dt;
    if(!m.lk&&P.hide&&P.lk&&Math.hypot(P.lk.lx-m.x,P.lk.lz-m.z)<6){m.lk=P.lk;m.lkT=m.saw?1:3+rand()*2;m.lx=P.lk.x;m.lz=P.lk.z}
-   if(m.lk&&Math.hypot(m.lk.x-m.x,m.lk.z-m.z)<1.6){m.lkT-=dt;sp=0;m.sw=0;if(m.lkT<=0){if(P.hide&&P.lk===m.lk&&(m.saw||rand()<.25)){P.hide=0;P.x=m.lk.x;P.z=m.lk.z;hurt(45);msg('Оно вытащило тебя из шкафа!')}m.lk=null;m.saw=0;m.lx=m.x+(rand()-.5)*12;m.lz=m.z+(rand()-.5)*12}}
+   if(m.lk&&Math.hypot(m.lk.x-m.x,m.lk.z-m.z)<1.6){m.lkT-=dt;sp=0;m.sw=0;if(m.lkT<=0){if(P.hide&&P.lk===m.lk&&(m.saw||rand()<.12)){P.hide=0;P.x=m.lk.x;P.z=m.lk.z;deathScare();return}m.lk=null;m.saw=0;m.lx=m.x+(rand()-.5)*12;m.lz=m.z+(rand()-.5)*12}}
    else if(m.sw>1.6+rand()){m.sw=0;m.lx=m.x+(rand()-.5)*14;m.lz=m.z+(rand()-.5)*12;if(++m.n>4){m.n=0;m.st='patrol'}}}}
  else if(m.st==='stalk'){gx=P.x;gz=P.z;sp=d>13?2.6:d>9?1.2:0}
  else if(m.st==='flee'){m.flee-=dt;sp=5;if(!m.fg||Math.hypot(m.x-m.fg[0],m.z-m.fg[1])<2)m.fg=freeSpot(25,70,1)||[m.x-dx,m.z-dz];gx=m.fg[0];gz=m.fg[1];if(m.flee<=0)m.st='patrol'}
- sp*=mult;
+ sp*=mult;if(s&&s.k==='escape'&&m.st==='chase')sp=Math.min(sp,3.4);
  /* path following */
  const gk=Math.floor(gx/CS)+Math.floor(gz/CS)*LV.W;m.pT-=dt;if(gk!==m.gk||m.pT<=0){m.gk=gk;m.pT=.5;m.path=astar(m.x,m.z,gx,gz)}
  let tx=gx,tz=gz;while(m.path.length&&Math.hypot(m.path[0][0]-m.x,m.path[0][1]-m.z)<.7)m.path.shift();
@@ -211,7 +211,17 @@ function monUpdate(dt){const m=MO,dx=P.x-m.x,dz=P.z-m.z,d=Math.hypot(dx,dz);
  if(d<14&&!P.hide||d<6){m.hb-=dt;if(m.hb<=0){m.hb=Math.max(.38,d/14*1.1);SFX.heart(1-d/16)}}
  if(d<20&&los(P.x,P.z,m.x,m.z)&&playerLooks)P.san-=dt*4*(md.psy||1);
  /* attack */
- if(d<1.4&&m.cool<=0&&(!P.hide)&&m.st!=='flee'){hurt(m.st==='chase'?45:35);m.cool=2.2;if(MO.st!=='chase')MO.st='chase'}}
+ if(d<1.3&&(!P.hide)&&m.st!=='flee'&&m.st!=='idle')deathScare()}
+let scT=0,sc0=0;
+function deathScare(){if(mode!=='play')return;mode='scare';scT=0;sc0=performance.now();uiOpen=0;try{document.exitPointerLock()}catch(e){}show('hud',0);show('tc',0);show('pn',0);P.hide=0;HAND.visible=false;MG.visible=true;$('vig').classList.remove('h');
+ SFX.jump();const f=$('fx');f.style.transition='none';f.style.opacity=.7;setTimeout(()=>{f.style.transition='opacity .6s';f.style.opacity=.35},60);if(navigator.vibrate)try{navigator.vibrate([300,80,500])}catch(e){}}
+function scareUpdate(dt){scT=(performance.now()-sc0)/1000;const m=MO,ty=Math.atan2(-(m.x-P.x),-(m.z-P.z));P.yaw+=angDiff(P.yaw,ty)*Math.min(1,dt*16);P.pit+=(.02-P.pit)*Math.min(1,dt*10);
+ const sh=scT<1.3?.05:0;cam.position.set(P.x+(rand()-.5)*sh,P.h,P.z+(rand()-.5)*sh);cam.rotation.set(P.pit+(rand()-.5)*sh*.8,P.yaw+(rand()-.5)*sh*.8,(rand()-.5)*sh*1.6);
+ const k=Math.min(1,scT/.4),e=1-Math.pow(1-k,3),d=lerp(1.5,.38,e);animMonster(MG,dt,{sp:0,jaw:1,reach:1,hyaw:0,breath:9});MG.userData.jaw.rotation.x=1.05+Math.sin(scT*30)*.08;
+ const fx=-Math.sin(P.yaw),fz=-Math.cos(P.yaw);MG.rotation.y=Math.atan2(-fx,-fz);MG.position.set(0,0,0);MG.updateMatrixWorld(true);const hp=MG.userData.head.getWorldPosition(V3);
+ MG.position.set(P.x+fx*d-hp.x,P.h-.08-hp.y,P.z+fz*d-hp.z);bo=scT<1.2?(rand()<.3?.15:1):0;
+ MComp.uniforms.ca.value=1.6+Math.sin(scT*40)*.6;MComp.uniforms.dmg.value=Math.min(.8,scT);MComp.uniforms.vg.value=1;
+ if(scT>1.25)$('blk').style.opacity=1;if(scT>2){$('blk').style.opacity=0;mode='play';finish(0)}}
 function hurt(v){P.hp-=v;P.shk=.6;P.san-=10;const f=$('fx');f.style.transition='none';f.style.opacity=.85;setTimeout(()=>{f.style.transition='opacity .9s';f.style.opacity=0},40);beep(70,.5,'sawtooth',.4,30);if(P.hp<=0)finish(0)}
 
 /* ---------- player update ---------- */
@@ -222,7 +232,7 @@ function play(dt){pt+=dt;const sn=Math.sin(P.yaw),cs=Math.cos(P.yaw);
  let water=0;for(const w of LV.water){if(w.tgt!=null){w.lv+=(w.tgt-w.lv)*dt*.25;w.m.position.y=w.lv}if(P.x>w.x0&&P.x<w.x1&&P.z>w.z0&&P.z<w.z1&&w.lv>.15)water=w.lv}P.wet=water;
  const wr=P.moving&&(K.ShiftLeft||K.ShiftRight||T.run)&&!P.crouch&&!P.tired&&P.st>0;P.run=wr;
  const spd=(wr?5.3:P.crouch?1.5:2.8)*(water?.62:1);if(P.moving)move(P,(-sn*fx+cs*sx)*spd*dt,(-cs*fx-sn*sx)*spd*dt,.33);
- P.st=clamp(P.st+(wr?-18:13)*dt,0,100);if(P.st<=0)P.tired=1;
+ P.st=clamp(P.st+(wr?-14:14)*dt,0,100);if(P.st<=0)P.tired=1;
  P.h+=((P.hide?1.45:P.crouch?1:1.65)-P.h)*Math.min(1,dt*9);if(P.moving)P.bob+=dt*(wr?11:P.crouch?5:7.5);
  const stp2=Math.floor(P.bob/PI);if(P.moving&&stp2!==P.ls){P.ls=stp2;SFX.step(wr,water);noiseAt(P.x,P.z,(wr?15:P.crouch?2.2:6.5)*(water?1.8:1))}
  P.shk=Math.max(0,P.shk-dt);
@@ -397,7 +407,7 @@ $('ht').textContent=touch?'Левая часть экрана: движение.
 /* ---------- main loop ---------- */
 const clk=new THREE.Clock();
 function loop(){requestAnimationFrame(loop);const dt=Math.min(clk.getDelta(),.05);t+=dt;
- if(mode==='play'&&!uiOpen)play(dt);else if(mode==='menu'){menuCam();if(humMix)humMix.update(dt)}
+ if(mode==='play'&&!uiOpen)play(dt);else if(mode==='scare')scareUpdate(dt);else if(mode==='menu'){menuCam();if(humMix)humMix.update(dt)}
  if(LV){lights(dt);sparks(dt);cull(dt);if(WATER&&WATER.normalMap){WATER.normalMap.offset.x=t*.02;WATER.normalMap.offset.y=t*.013}}
  if(dust){const u=dust.material.uniforms;u.tm.value=t;u.cp.value.copy(cam.position);cam.getWorldDirection(u.cd.value);u.li.value=mode==='play'&&P.light?1:.15}
  setListener();adapt(dt);render()}
