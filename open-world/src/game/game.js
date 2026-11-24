@@ -68,7 +68,7 @@ export class Game {
   showMenu() {
     this.mode = 'menu'; G.playing = false;
     this.menu.showMain(true); this.hud.show(false);
-    G.hour = 18.4; this.W.atmo.setWeather('clear', true);
+    G.hour = 17.55; this.W.atmo.setWeather('clear', true);
     document.getElementById('touch').classList.add('hidden');
     const unlock = () => { this.audio.init(); this.audio.menuMusic(true); removeEventListener('pointerdown', unlock); };
     addEventListener('pointerdown', unlock);
@@ -227,8 +227,7 @@ export class Game {
   activators() {
     const out = [];
     for (const v of this.movingVehicles) if (v.mode === 'dynamic') out.push({ x: v.pos.x, z: v.pos.z, speed: Math.abs(v.speed) });
-    const pl = this.player; if (pl.state === 'foot') out.push({ x: pl.pos.x, z: pl.pos.z, speed: 0 });
-    return out;
+        return out;
   }
   updateLoose(dt) {
     const p = this.player.wpos();
@@ -266,7 +265,7 @@ export class Game {
     this.camera.lookAt(c.x, 70, c.z);
     this.camera.fov = 50; this.camera.updateProjectionMatrix();
     G.camYaw = Math.atan2(c.x - this.camera.position.x, c.z - this.camera.position.z);
-    G.hour += dt * 0.01;
+    
     const focus = { x: c.x + Math.sin(t) * 120, y: 0, z: c.z + Math.cos(t) * 120 };
     this.player.pos.set(focus.x, 0, focus.z);
     this.traffic.update(dt);

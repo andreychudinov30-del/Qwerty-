@@ -76,7 +76,7 @@ export class Engine {
     if (this.composer) { this.composer.renderTarget1.dispose(); this.composer.renderTarget2.dispose(); }
     this.composer = null; this.gtao = null; this.bloom = null;
     const q = this.q, r = this.renderer;
-    if (!q.post) { r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 1.0; return; }
+    if (!q.post) { r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 0.82; return; }
     r.toneMapping = THREE.NoToneMapping;
     const s = r.getDrawingBufferSize(new THREE.Vector2());
     const rt = new THREE.WebGLRenderTarget(s.x, s.y, { type: THREE.HalfFloatType, samples: q.msaa || 0 });

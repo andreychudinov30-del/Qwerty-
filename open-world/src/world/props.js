@@ -380,7 +380,7 @@ export class Props {
   update(dt, player, activators) {
     const night = nightU.value, fog = this.scene.fog ? this.scene.fog.density : 0;
     LAMPGLOW.emissiveIntensity = 0.1 + night * 9;
-    this.poolMat.opacity = night * 0.55;
+    this.poolMat.opacity = night * 0.85;
     this.coneMat.uniforms.uA.value = night * (0.18 + Math.min(fog * 300, 0.5));
     // traffic signals
     for (let a = 0; a < 2; a++) {

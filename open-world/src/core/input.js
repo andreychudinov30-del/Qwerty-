@@ -59,12 +59,14 @@ export const hit = (a) => I.pressed.has(a);
 const T = { stickActive: false, sx: 0, sy: 0, stickId: null, lookId: null, ox: 0, oy: 0, lpx: 0, lpy: 0 };
 const BTN_DEF = {
   foot: [
-    ['attack', 'Огонь', 88, 62], ['aim', 'Прицел', 170, 74], ['jump', 'Прыжок', 80, 150], ['sprint', 'Бег', 160, 160, true], ['enter', 'Сесть', 250, 70],
-    ['nextWeapon', 'Оружие', 70, 240], ['interact', 'Действие', 250, 150], ['map', 'Карта', 0, 0, false, 'tr'], ['pause', '❚❚', 0, 0, false, 'tl'], ['phone', 'Тел.', 0, 0, false, 'tl2'],
+    ['attack', 'Огонь', 0, 0], ['aim', 'Прицел', 80, 0], ['enter', 'Сесть', 160, 0],
+    ['jump', 'Прыжок', 0, 80], ['sprint', 'Бег', 80, 80], ['interact', 'Действие', 160, 80],
+    ['nextWeapon', 'Оружие', 0, 160], ['map', 'Карта', 0, 0, false, 'tl2'], ['pause', '❚❚', 0, 0, false, 'tl'],
   ],
   car: [
-    ['up', 'Газ', 80, 70], ['down', 'Тормоз', 170, 62], ['jump', 'Ручник', 80, 160], ['enter', 'Выйти', 260, 70], ['horn', 'Сигнал', 170, 150], ['camera', 'Камера', 250, 160],
-    ['radio', 'Радио', 70, 245], ['siren', 'Сирена', 160, 240], ['map', 'Карта', 0, 0, false, 'tr'], ['pause', '❚❚', 0, 0, false, 'tl'],
+    ['up', 'Газ', 0, 0], ['down', 'Тормоз', 80, 0], ['enter', 'Выйти', 160, 0],
+    ['jump', 'Ручник', 0, 80], ['horn', 'Сигнал', 80, 80], ['camera', 'Камера', 160, 80],
+    ['radio', 'Радио', 0, 160], ['siren', 'Сирена', 80, 160], ['map', 'Карта', 0, 0, false, 'tl2'], ['pause', '❚❚', 0, 0, false, 'tl'],
   ],
 };
 let editing = false;
@@ -123,7 +125,7 @@ function initTouch() {
   addEventListener('touchend', end); addEventListener('touchcancel', end);
 }
 export function layoutTouch() {
-  const s = settings.touch.scale, op = settings.touch.opacity, flip = settings.touch.left;
+  const s = settings.touch.scale * Math.min(1, innerHeight / 560), op = settings.touch.opacity, flip = settings.touch.left;
   for (const [id, el] of Object.entries(btnEls)) {
     const [rx, by, corner] = JSON.parse(el.dataset.def);
     const custom = settings.touch.layout[id];

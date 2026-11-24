@@ -44,9 +44,9 @@ input[type=range]{width:180px;accent-color:var(--acc);touch-action:pan-x}
 .close{position:absolute;right:14px;top:12px;background:none;border:none;color:#fff;font-size:26px;cursor:pointer}
 /* HUD */
 #hud{position:fixed;inset:0;pointer-events:none;z-index:20}
-#mmWrap{position:absolute;left:max(18px,env(safe-area-inset-left));bottom:18px;width:min(23vw,230px);aspect-ratio:1;border-radius:50%;overflow:hidden;border:3px solid rgba(0,0,0,.6);box-shadow:0 4px 20px rgba(0,0,0,.5)}
+#mmWrap{position:absolute;left:max(18px,env(safe-area-inset-left));bottom:18px;width:min(23vw,230px,36vh);aspect-ratio:1;border-radius:50%;overflow:hidden;border:3px solid rgba(0,0,0,.6);box-shadow:0 4px 20px rgba(0,0,0,.5)}
 #mm{width:100%;height:100%}
-#bars{position:absolute;left:max(18px,env(safe-area-inset-left));bottom:calc(18px + min(23vw,230px) + 8px);width:min(23vw,230px);display:flex;gap:4px}
+#bars{position:absolute;left:max(18px,env(safe-area-inset-left));bottom:calc(18px + min(23vw,230px,36vh) + 8px);width:min(23vw,230px,36vh);display:flex;gap:4px}
 #bars div{flex:1;height:7px;background:rgba(0,0,0,.6);border-radius:2px;overflow:hidden}
 #bars i{display:block;height:100%;width:100%}
 #hpB{background:#4ddc6a}#arB{background:#3f9cff}

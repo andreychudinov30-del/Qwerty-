@@ -215,6 +215,29 @@ export class PedSystem {
     out[0].say(pick(LINES.gang), 3, true); out[out.length - 1].say(pick(LINES.gang), 3, true);
     return out;
   }
+  // random event: a thief snatches a bag and runs; stop him for a reward
+  robbery(px, pz) {
+    const victim = this.list.find((p) => p.team === 'civ' && !p.mission && p.state === 'walk' && Math.hypot(p.h.pos.x - px, p.h.pos.z - pz) < 60);
+    if (!victim) return;
+    const v = victim.h.pos;
+    const thief = new Ped(this, v.x + 1.5, v.z + 1, { look: { ...randomLook(), jacket: '#1a1a1a', hairStyle: 'beanie' } });
+    thief.state = 'flee'; thief.threat = victim; thief.t = 60; thief.thief = true; thief.keep = true;
+    this.list.push(thief);
+    victim.say('Держи вора! Он украл мою сумку!', 4, true); victim.state = 'look'; victim.lookAt = thief.h.pos; victim.t = 6;
+    G.hud.notify('🚨 Случайное событие: остановите вора!');
+    const b = { x: v.x, z: v.z, icon: 'mission', letter: '$', color: '#ff3a3a', edge: true, kind: 'event' };
+    G.hud.blips.push(b);
+    const tick = setInterval(() => {
+      b.x = thief.h.pos.x; b.z = thief.h.pos.z;
+      if (thief.dead || thief.state === 'ragdoll' || thief.state === 'fight') {
+        clearInterval(tick); G.hud.blips = G.hud.blips.filter((x) => x !== b);
+        this.game.spawnPickup(thief.h.hipsPos ? thief.h.hipsPos() : thief.h.pos, 'cash', 350);
+        G.hud.notify('Вор остановлен! Заберите сумку.'); thief.keep = false;
+      } else if (!this.list.includes(thief) || Math.hypot(thief.h.pos.x - G.player.x, thief.h.pos.z - G.player.z) > 160) {
+        clearInterval(tick); G.hud.blips = G.hud.blips.filter((x) => x !== b); thief.keep = false; G.hud.notify('Вор скрылся.');
+      }
+    }, 250);
+  }
   closestEnemy(p, r) {
     let best = null, bd = r;
     for (const o of this.query(p.h.pos.x, p.h.pos.z, r)) {
@@ -259,7 +282,7 @@ export class PedSystem {
       if (night || chance(0.4)) {
         const a = rand(0, 6.28), r = rand(70, 120), x = px + Math.cos(a) * r, z = pz + Math.sin(a) * r;
         if (!G.city.insideBuilding(x, z)) { this.gangFight(x, z); G.hud.notify('⚠ Слышна перестрелка неподалёку'); }
-      }
+      } else this.robbery(px, pz);
     }
     // chats: pair idle walkers
     if (Math.random() < 0.05) {

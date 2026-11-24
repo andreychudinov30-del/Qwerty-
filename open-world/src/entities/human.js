@@ -73,13 +73,10 @@ function clothMat(src, look, bb, frontSign) {
         if(h<0.055) c=uShoes*(0.7+lum*0.6);
         else if(h<0.47 && ax<0.3) c=uPants*det;
         else if(h<0.5 && ax<0.3) c=vec3(0.06)*det;
-        else if(h>0.865 && ax<0.2){
-          float hairZone = step(0.94,h) + step(0.885,h)*step(fr,-0.01);
-          c = mix(uSkin*(0.85+lum*0.3), uHair*(0.7+lum*0.5), clamp(hairZone,0.,1.));
-        }
-        else if(ax>0.8) c=uSkin*(0.85+lum*0.3);
-        else if(ax>0.5) c=mix(uSkin*(0.85+lum*0.3), (uHasJ>0.5?uJacket:uShirt)*det, max(uSleeve,uHasJ));
-        else if(h>0.82 && ax<0.12 && fr>0.0) c=uSkin*(0.85+lum*0.3);
+        else if(h>0.855 && ax<0.2){ discard; }
+        else if(ax>0.8) c=uSkin*0.8*(0.85+lum*0.3);
+        else if(ax>0.5) c=mix(uSkin*0.8*(0.85+lum*0.3), (uHasJ>0.5?uJacket:uShirt)*det, max(uSleeve,uHasJ));
+        else if(h>0.82 && ax<0.12 && fr>0.0) c=uShirt*det*0.9;
         else {
           c = uShirt*det;
           if(uHasJ>0.5){ float open = step(ax,0.07)*step(0.0,fr); c = mix(uJacket*det, uShirt*det, open); }
@@ -96,6 +93,18 @@ function clothMat(src, look, bb, frontSign) {
 const hairMatCache = new Map();
 const hairMat = (c) => { if (!hairMatCache.has(c)) hairMatCache.set(c, new THREE.MeshStandardMaterial({ color: c, roughness: 0.75 })); return hairMatCache.get(c); };
 const DARK = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.4 });
+const EYEWHITE = new THREE.MeshStandardMaterial({ color: 0xe8e4de, roughness: 0.3 });
+const LIPS = new THREE.MeshStandardMaterial({ color: 0x8a4a42, roughness: 0.6 });
+const skinCache = new Map();
+const skinMat = (c) => { if (!skinCache.has(c)) skinCache.set(c, new THREE.MeshStandardMaterial({ color: new THREE.Color(c).multiplyScalar(0.8), roughness: 0.6 })); return skinCache.get(c); };
+const SKULL = new THREE.SphereGeometry(1, 20, 16), SPH = new THREE.SphereGeometry(1, 10, 8), BOX = new THREE.BoxGeometry(1, 1, 1);
+const JAW = new THREE.SphereGeometry(1, 16, 12, 0, Math.PI * 2, Math.PI * 0.35, Math.PI * 0.65);
+const NECK = new THREE.CylinderGeometry(0.05, 0.058, 0.12, 12);
+const EYEW = new THREE.SphereGeometry(1, 10, 8), EYEI = new THREE.SphereGeometry(1, 8, 6), EAR = new THREE.SphereGeometry(1, 8, 6);
+const NOSE = new THREE.ConeGeometry(1, 1, 8);
+const HAIRCAP = new THREE.SphereGeometry(1, 18, 12, 0, Math.PI * 2, 0, Math.PI * 0.5);
+const BEARD = new THREE.SphereGeometry(1, 14, 10, -Math.PI * 0.3, Math.PI * 1.6, Math.PI * 0.45, Math.PI * 0.5);
+const CYL = new THREE.CylinderGeometry(1, 1, 1, 16);
 
 export const WEAPON_MESH = {};
 function weaponMesh(kind) {
@@ -162,31 +171,45 @@ export class Human {
     this.model.updateMatrixWorld(true);
     const ws = new THREE.Vector3(); head.getWorldScale(ws);
     const k = 1 / ws.x; // meters -> bone local units
-    const hp = new THREE.Vector3(); head.getWorldPosition(hp);
-    const top = new THREE.Vector3(); this.bones.headTop.getWorldPosition(top);
-    const hh = top.distanceTo(hp); // head height approx
-    const add = (geo, mat, pos, scale = [1, 1, 1], rot = [0, 0, 0]) => {
+    // character-space axes expressed in head-bone local space
+    const iq = head.getWorldQuaternion(new THREE.Quaternion()).invert();
+    const fwd = new THREE.Vector3(0, 0, 1).applyQuaternion(this.model.parent ? new THREE.Quaternion() : new THREE.Quaternion()).applyQuaternion(iq).normalize();
+    const up = new THREE.Vector3(0, 1, 0).applyQuaternion(iq).normalize();
+    const rt = new THREE.Vector3().crossVectors(up, fwd).normalize();
+    const basis = new THREE.Matrix4().makeBasis(rt, up, fwd);
+    const bq = new THREE.Quaternion().setFromRotationMatrix(basis);
+    const P = (r, u, f) => new THREE.Vector3().addScaledVector(rt, r * k).addScaledVector(up, u * k).addScaledVector(fwd, f * k);
+    const add = (geo, mat, r, u, f, sc = [1, 1, 1], rot = null) => {
       const m = new THREE.Mesh(geo, mat); m.castShadow = true;
-      m.position.set(pos[0] * k, pos[1] * k, pos[2] * k); m.scale.set(scale[0] * k, scale[1] * k, scale[2] * k); m.rotation.set(...rot);
+      m.position.copy(P(r, u, f)); m.quaternion.copy(bq); if (rot) m.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)));
+      m.scale.set(sc[0] * k, sc[1] * k, sc[2] * k);
       head.add(m); return m;
     };
-    // head bone local: +Y up the neck->top; forward is +Z in mixamo bone space
-    const fz = 1;
-    const hc = hairMat(look.hair);
-    const r = hh * 0.62;
+    const skin = skinMat(look.skin), hc = hairMat(look.hair);
+    const R = 0.098, cy = 0.085; // skull radius, skull centre above head joint
+    add(SKULL, skin, 0, cy, 0.005, [0.94 * R, 1.12 * R, 1.02 * R]);
+    add(JAW, skin, 0, cy - 0.06, 0.02, [0.78 * R, 0.6 * R, 0.85 * R]);
+    add(NECK, skin, 0, -0.02, -0.005, [1, 1, 1]);
+    for (const sx of [-1, 1]) {
+      add(EYEW, EYEWHITE, sx * 0.033, cy + 0.008, 0.088, [0.016, 0.011, 0.008]);
+      add(EYEI, DARK, sx * 0.033, cy + 0.008, 0.095, [0.008, 0.008, 0.004]);
+      add(BOX, hc, sx * 0.034, cy + 0.03, 0.09, [0.032, 0.007, 0.01], [0, 0, sx * -0.12]);
+      add(EAR, skin, sx * 0.094, cy, -0.005, [0.012, 0.03, 0.022]);
+    }
+    add(NOSE, skin, 0, cy - 0.012, 0.1, [0.014, 0.03, 0.02], [-0.25, 0, 0]);
+    add(BOX, LIPS, 0, cy - 0.045, 0.088, [0.034, 0.008, 0.01]);
     const st = look.hairStyle;
-    if (st === 'short' || st === 'long' || st === 'bun') add(new THREE.SphereGeometry(r, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.55), hc, [0, hh * 0.52, -0.01 * fz], [1.06, 0.95, 1.12]);
-    if (st === 'long') add(new THREE.BoxGeometry(r * 1.9, hh * 1.2, r * 0.5), hc, [0, hh * 0.05, -r * 0.75 * fz]);
-    if (st === 'bun') add(new THREE.SphereGeometry(r * 0.35, 10, 8), hc, [0, hh * 0.85, -r * 0.7 * fz]);
-    if (st === 'cap') { const cm = hairMat(pick(['#1a1a1a', '#c81a1a', '#1a3a8a', '#e8e8e8', '#2a5a2a'])); add(new THREE.SphereGeometry(r * 1.02, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.5), cm, [0, hh * 0.55, 0], [1.05, 0.85, 1.1]); add(new THREE.BoxGeometry(r * 1.4, r * 0.06, r * 1.0), cm, [0, hh * 0.6, r * 1.0 * fz]); }
-    if (st === 'beanie') add(new THREE.SphereGeometry(r * 1.05, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.6), hairMat(pick(['#2a2a2a', '#6a1a1a', '#1a4a6a', '#8a8a2a'])), [0, hh * 0.5, 0], [1.05, 1.1, 1.1]);
-    if (st === 'hat') { const cm = hairMat(pick(['#2a2a2a', '#4a3a2a', '#1a1a2a'])); add(new THREE.CylinderGeometry(r * 0.85, r * 0.95, r * 0.9, 14), cm, [0, hh * 0.85, 0]); add(new THREE.CylinderGeometry(r * 1.6, r * 1.6, r * 0.06, 18), cm, [0, hh * 0.55, 0]); }
-    // face: eyes + brows + nose
-    const ey = hh * 0.12, ez = r * 0.92 * fz;
-    for (const sx of [-1, 1]) { add(new THREE.SphereGeometry(r * 0.09, 8, 6), DARK, [sx * r * 0.33, ey, ez], [1, 1, 0.5]); add(new THREE.BoxGeometry(r * 0.3, r * 0.05, r * 0.06), hc, [sx * r * 0.33, ey + r * 0.2, ez + r * 0.02]); }
-    if (look.glasses) add(new THREE.BoxGeometry(r * 1.1, r * 0.2, r * 0.05), DARK, [0, ey, ez + r * 0.05]);
-    if (look.beard) add(new THREE.SphereGeometry(r * 0.75, 10, 8, 0, Math.PI * 2, Math.PI * 0.45, Math.PI * 0.55), hc, [0, -hh * 0.18, r * 0.15 * fz], [1, 0.9, 1]);
-    this.headR = r; this.headK = k;
+    const hr = R * 1.07;
+    if (st === 'short' || st === 'long' || st === 'bun') add(HAIRCAP, hc, 0, cy + 0.03, -0.012, [hr * 0.97, hr * 0.92, hr * 1.04], [-0.25, 0, 0]);
+    if (st === 'long') add(BOX, hc, 0, cy - 0.07, -0.06, [0.17, 0.2, 0.05]);
+    if (st === 'bun') add(SPH, hc, 0, cy + 0.05, -0.1, [0.04, 0.04, 0.04]);
+    if (st === 'cap') { const cm = hairMat(pick(['#1a1a1a', '#c81a1a', '#1a3a8a', '#e8e8e8', '#2a5a2a'])); add(HAIRCAP, cm, 0, cy + 0.02, 0, [hr, hr * 0.95, hr * 1.06]); add(BOX, cm, 0, cy + 0.045, 0.1, [0.15, 0.01, 0.08]); }
+    if (st === 'beanie') add(HAIRCAP, hairMat(pick(['#2a2a2a', '#6a1a1a', '#1a4a6a', '#8a8a2a'])), 0, cy + 0.02, -0.005, [hr * 1.04, hr * 1.2, hr * 1.08]);
+    if (st === 'hat') { const cm = hairMat(pick(['#2a2a2a', '#4a3a2a', '#1a1a2a'])); add(CYL, cm, 0, cy + 0.11, 0, [0.09, 0.09, 0.09]); add(CYL, cm, 0, cy + 0.065, 0, [0.16, 0.008, 0.16]); }
+    if (st === 'bald') add(HAIRCAP, hc, 0, cy - 0.005, -0.02, [hr * 0.97, hr * 0.7, hr * 1.02], [0.35, 0, 0]);
+    if (look.glasses) add(BOX, DARK, 0, cy + 0.008, 0.1, [0.11, 0.022, 0.01]);
+    if (look.beard) add(BEARD, hc, 0, cy - 0.06, 0.035, [0.072, 0.045, 0.07]);
+    this.headR = R; this.headK = k;
   }
   hold(kind) {
     if (this.heldKind === kind) return;

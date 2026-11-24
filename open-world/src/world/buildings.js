@@ -87,17 +87,24 @@ export function facadeMat(name) {
         vec4 texelColor = texture2D(map, vFUv);
         gMask = texture2D(tMask, vFUv).r;
         vec2 cell = floor(vFUv*${WIN}.);
-        float rnd = hh(cell + vSeed*913.);
-        float rnd2 = hh(cell.yx*1.7 + vSeed*37.);
+        float sd = floor(vSeed*1000.+0.5);
+        vec2 key = cell + vec2(mod(sd,97.), mod(sd*7.,89.));
+        float rnd = hh(key);
+        float rnd2 = hh(key.yx + 31.);
         vec3 wall = texelColor.rgb;
         if(uHasDet>0.5){ vec3 d=texture2D(tDet, vW.xy*0.0+vec2(dot(vW.xz,vec2(abs(vWN.z),abs(vWN.x))),vW.y)/4.).rgb; wall*=mix(vec3(1.),d*1.9,0.75); }
         diffuseColor.rgb = mix(wall, texelColor.rgb*0.35, gMask);
         // lit windows + interior mapping
-        float lit = step(rnd, uLit*(0.25+0.75*uNight) + uShop*0.6);
+        float litP = clamp(uLit*(0.25+0.75*uNight) + uShop*0.6, 0., 1.);
+        float lit = step(rnd, litP);
+        float pxs = length(fwidth(vFUv*${WIN}.));
+        float farAA = smoothstep(0.15, 0.6, pxs);
+        lit = mix(lit, litP*0.85, farAA);
+        gMask = mix(smoothstep(0.35,0.65,gMask), 0.45, farAA);
         vec3 lc = mix(vec3(1.0,0.72,0.42), vec3(0.75,0.85,1.0), step(0.75,rnd2));
         lc = mix(lc, vec3(1.,0.9,0.75), uShop);
         gEmit = vec3(0.);
-        if(gMask>0.5){
+        if(gMask>0.01){
           vec2 q = (fract(vFUv*${WIN}.)-uWin.xy)/(uWin.zw-uWin.xy);
           vec3 V = normalize(vW - cameraPosition);
           vec3 N = normalize(vWN); vec3 T = normalize(cross(vec3(0.,1.,0.),N)); vec3 B = vec3(0.,1.,0.);
@@ -121,8 +128,8 @@ export function facadeMat(name) {
           ic = mix(ic, wallc*0.8, clamp(length(vW-cameraPosition)/220.,0.,1.));
           ` : 'vec3 ic = vec3(0.7,0.65,0.6);'}
           float dayIn = 0.06*(1.-uNight);
-          gEmit = ic * (lit*lc*(1.1+uShop*0.8)*smoothstep(0.,0.35,uNight+uShop*0.4) + dayIn);
-          if(lit>0.5 && rnd2<0.06) gEmit *= vec3(0.5,0.7,1.3)*(0.7+0.3*sin(vSeed*40.+cell.x*3.+cameraPosition.x*0.0));
+          gEmit = gMask * ic * (lit*lc*(1.1+uShop*0.8)*smoothstep(0.,0.35,uNight+uShop*0.4) + dayIn);
+          if(lit>0.5 && rnd2<0.06) gEmit *= vec3(0.5,0.7,1.3)*(0.85);
         }`)
       .replace('#include <roughnessmap_fragment>', `float roughnessFactor = mix(mix(roughness, 0.35, uWet*0.6), 0.04, gMask);`)
       .replace('#include <metalnessmap_fragment>', `float metalnessFactor = mix(0., uMetal, gMask);`)
