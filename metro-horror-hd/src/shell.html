@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="theme-color" content="#05070a">
+<title>Metro Horror — Последний поезд</title>
+<style>
+:root{--bg:#05070a;--fg:#d8dde4;--am:#d9902f;--pn:rgba(9,13,17,.84);box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#05070a;--fg:#d8dde4}}
+:root[data-theme="dark"]{--bg:#05070a;--fg:#d8dde4}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--bg);color:var(--fg);font:15px/1.4 Bahnschrift,"Arial Narrow","Roboto Condensed",system-ui,sans-serif;-webkit-user-select:none;user-select:none;touch-action:none;-webkit-touch-callout:none}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
+.ov{position:fixed;inset:0;display:flex;flex-direction:column;padding:calc(env(safe-area-inset-top,0px) + 14px) 14px calc(env(safe-area-inset-bottom,0px) + 16px)}
+.hide{display:none!important}
+#menu{justify-content:space-between;background:linear-gradient(#000b,#0000 32%,#0000 52%,#000d)}
+h1{margin:4px 0 0;text-align:center;font:700 clamp(30px,9vw,54px)/1 Georgia,serif;letter-spacing:.04em;text-shadow:0 0 26px #d9902f66}
+h1 small{display:block;font:400 .36em Bahnschrift,"Arial Narrow",sans-serif;letter-spacing:.2em;color:#9fb0bd;margin-top:8px}
+.bt{display:flex;flex-direction:column;gap:9px;max-width:340px;width:100%;margin:0 auto}
+button{font:inherit;font-size:17px;color:var(--fg);background:var(--pn);border:1px solid #ffffff26;border-radius:8px;padding:13px 16px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+button:active{background:#d9902f77}
+button[disabled]{opacity:.38}
+#cn{text-align:center;color:var(--am)}
+.hint{margin:2px 0 0;text-align:center;font-size:12px;color:#8d9aa6}
+#pn{justify-content:center;background:#0006}#end{justify-content:center;background:#000a}#pause{justify-content:center;background:#000b}
+.card{margin:0 auto;width:min(94vw,460px);max-height:calc(100% - 8px);overflow:auto;background:var(--pn);border:1px solid #ffffff22;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:9px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);touch-action:pan-y}
+.card h2{margin:0;font:700 24px Georgia,serif}.card h3{margin:6px 0 0;font:700 16px Georgia,serif;color:var(--am)}.card p{margin:0;color:#aab4be;font-size:14px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.row>*{flex:1}
+.ms{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.ms button{font-size:13px;padding:9px 6px;line-height:1.15}
+.ms button.dn{border-color:#4fae6b88}
+label{font-size:14px;color:#aab4be;display:flex;flex-direction:column;gap:4px}
+input[type=range]{width:100%;accent-color:#d9902f}
+#hud,#tc{position:fixed;inset:0;pointer-events:none}
+#top{position:absolute;left:12px;top:calc(env(safe-area-inset-top,0px) + 10px)}
+#clk{font:700 22px/1 Bahnschrift,monospace;text-shadow:0 0 8px #000}
+.br{width:112px;height:6px;background:#0009;margin-top:5px;border-radius:4px;overflow:hidden}.br i{display:block;height:100%;width:100%;transition:width .2s}
+#iv{position:absolute;right:12px;top:calc(env(safe-area-inset-top,0px) + 10px);max-width:46vw;font-size:12px;text-align:right;text-shadow:0 0 6px #000;color:#c3cbd3}
+#obj{position:absolute;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 10px);max-width:44vw;text-align:center;font-size:13px;color:#e9d7b8;text-shadow:0 0 8px #000,0 0 3px #000}
+#obj b{display:block;font-size:11px;letter-spacing:.14em;color:#9fb0bd;font-weight:400}
+#arr{position:absolute;left:50%;top:calc(env(safe-area-inset-top,0px) + 62px);width:26px;height:26px;margin-left:-13px;opacity:.55;transition:opacity .4s}
+#arr i{position:absolute;inset:0;background:conic-gradient(from -20deg at 50% 100%,#e9d7b8 0 40deg,#0000 0);clip-path:polygon(50% 0,100% 100%,50% 75%,0 100%)}
+#arr span{position:absolute;top:28px;left:-20px;right:-20px;text-align:center;font-size:10px;color:#cdbb9c;text-shadow:0 0 4px #000}
+#pr{position:absolute;left:0;right:0;bottom:24%;text-align:center;font-size:16px;text-shadow:0 0 6px #000,0 0 12px #000}
+#hold{position:absolute;left:50%;bottom:calc(24% - 16px);width:160px;margin-left:-80px;height:5px;background:#0009;border-radius:3px;overflow:hidden}#hold i{display:block;height:100%;width:0;background:#d9902f}
+#msg{position:absolute;left:8%;right:8%;top:22%;text-align:center;opacity:0;transition:opacity .5s;text-shadow:0 0 8px #000,0 0 2px #000;font-size:16px}
+#sub{position:absolute;left:6%;right:6%;bottom:calc(env(safe-area-inset-bottom,0px) + 12%);text-align:center;font:italic 15px Georgia,serif;color:#cfd8c4;text-shadow:0 0 6px #000,0 0 2px #000;opacity:0;transition:opacity .6s}
+#fx{position:fixed;inset:0;background:radial-gradient(#0000 30%,#b00000d0);opacity:0;pointer-events:none}
+#vig{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,#0000 55%,#000b 100%)}
+#vig.h{background:repeating-linear-gradient(#000f 0 7.5vh,#000c 7.5vh 8.2vh,#0000 8.2vh 10.5vh,#000c 10.5vh 11.2vh),radial-gradient(#0003,#000e)}
+#blk{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity .25s}
+#tc button{pointer-events:auto;position:absolute;width:62px;height:62px;padding:0;border-radius:50%;font-size:12px;background:#0b1015b0;touch-action:none}
+#tc.ed{background:#0008;pointer-events:auto}#tc.ed button{outline:2px dashed #d9902f88}#tc.ed button.sel{outline:2px solid #d9902f;background:#d9902f55}
+#jr{position:fixed;display:none;width:110px;height:110px;margin:-55px 0 0 -55px;border:2px solid #fff4;border-radius:50%;pointer-events:none}
+#kn{position:absolute;width:46px;height:46px;left:30px;top:30px;border-radius:50%;background:#fff3}
+#edc{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 10px);transform:translateX(-50%);width:min(92vw,360px);z-index:5}
+#kp{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}#kp button{font-size:20px;padding:11px}
+#kd{font:700 30px/1 monospace;text-align:center;letter-spacing:.4em;color:#7dff9a;background:#020604;border:1px solid #2a4a33;border-radius:6px;padding:10px}
+.note{font:15px/1.5 Georgia,serif;color:#d8d2c2;white-space:pre-line;background:#1a1712;border:1px solid #4a4030;border-radius:4px;padding:12px}
+#load{justify-content:center;align-items:center;gap:12px;background:#05070a;z-index:10}
+#load .br{width:220px;height:4px}#lt{font-size:13px;color:#8d9aa6}
+#pb{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 6px);pointer-events:auto;font-size:12px;padding:6px 14px;opacity:.6}
+</style></head><body>
+<div id="load" class="ov"><h1>Metro Horror<small>Последний поезд</small></h1><div class="br"><i id="lb" style="background:#d9902f;width:0"></i></div><div id="lt">Загрузка ресурсов…</div></div>
+<div id="menu" class="ov hide"><h1>Metro Horror<small>Последний поезд</small></h1>
+<div class="bt"><button id="bP">Играть</button><button id="bO">Онлайн</button><button id="bS">Скины</button><button id="bG">Настройки</button><div id="cn"></div><p class="hint" id="ht"></p></div></div>
+<div id="pn" class="ov hide"><div class="card" id="pc"></div></div>
+<div id="hud" class="hide"><div id="top"><div id="clk">03:47</div><div class="br"><i id="hp" style="background:#c0392b"></i></div><div class="br"><i id="st" style="background:#4fae6b"></i></div><div class="br"><i id="bt" style="background:#d9b038"></i></div><div class="br"><i id="sn" style="background:#8a6cc9"></i></div></div>
+<div id="obj"></div><div id="arr"><i></i><span></span></div><div id="iv"></div><div id="msg"></div><div id="sub"></div><div id="pr"></div><div id="hold" class="hide"><i></i></div></div>
+<div id="tc" class="hide"><div id="jr"><div id="kn"></div></div>
+<button data-k="e" style="right:14px;bottom:26px;width:78px;height:78px;font-size:14px">Действие</button>
+<button data-k="f" style="right:22px;bottom:118px">Фонарь</button>
+<button data-k="c" style="right:104px;bottom:98px">Присесть</button>
+<button data-k="run" style="right:108px;bottom:22px">Бег</button>
+<button data-k="b" style="right:12px;top:104px">Батарея</button>
+<button data-k="m" style="right:82px;top:104px">Аптечка</button>
+<button data-k="p" style="left:50%;top:6px;width:46px;height:46px;margin-left:-23px;font-size:11px">Пауза</button></div>
+<div id="edc" class="card hide"><div class="row"><b id="edn">Выбери кнопку</b></div><label>Размер <input id="eds" type="range" min="40" max="130" value="62"></label><label>Прозрачность <input id="edo" type="range" min="15" max="100" value="80"></label><div class="row"><button id="edr">Сброс</button><button id="edx">Сохранить</button></div></div>
+<div id="fx"></div><div id="vig"></div><div id="blk"></div>
+<div id="pause" class="ov hide"><div class="card" id="pac"></div></div>
+<div id="end" class="ov hide"><div class="card" id="ec"></div></div>
+<script>/*VENDOR*/</script>
+<script>/*ASSETS*/</script>
+<script>/*GAME*/</script>
+</body></html>
