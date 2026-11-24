@@ -10,7 +10,7 @@ function limbGeo(r0,r1,len,knob,seed){const g=new THREE.CylinderGeometry(r1,r0,l
 let SKIN=null,SKD=null;
 function monsterMats(){if(SKIN)return;const h=noiseCanvas(256,6,31,(v,x,y)=>{const rg=1-Math.abs(2*v-1),q=Math.pow(rg,6)*255;return[q,q,q]});
  const col=noiseCanvas(256,5,11,v=>{const b=v>.62?(v-.62)*2.2:0;return[154-40*b+v*30-15,156-70*b+v*26-13,148-60*b+v*24-12]});
- SKIN=new THREE.MeshPhysicalMaterial({color:0xffffff,map:ctex(col,1,1),normalMap:ctex(h2n(h,5),0,1),normalScale:new THREE.Vector2(.8,.8),roughness:.42,clearcoat:.55,clearcoatRoughness:.35,emissive:0x140505});
+ SKIN=new THREE.MeshPhysicalMaterial({color:0x4d4f48,map:ctex(col,1,1),normalMap:ctex(h2n(h,5),0,1),normalScale:new THREE.Vector2(.8,.8),roughness:.42,clearcoat:.55,clearcoatRoughness:.35,emissive:0x0a0303});
  SKIN.map.repeat.set(2,2);SKIN.normalMap.repeat.set(2,2);SKD=new THREE.MeshStandardMaterial({color:0x1b1514,roughness:.85})}
 function buildMonster(phantom){monsterMats();const sk=phantom?new THREE.MeshBasicMaterial({color:0x020203,transparent:true,opacity:.92,fog:true}):SKIN,dk=phantom?sk:SKD,
  tooth=phantom?sk:new THREE.MeshStandardMaterial({color:0xb8ad8f,roughness:.35}),mouth=phantom?sk:new THREE.MeshStandardMaterial({color:0x2a0505,roughness:.4}),eye=new THREE.MeshBasicMaterial({color:0xff2a14}),
@@ -30,7 +30,7 @@ function buildMonster(phantom){monsterMats();const sk=phantom?new THREE.MeshBasi
  const hd=grp(nk,0,.2,.03);J.head=hd;const sg=new THREE.SphereGeometry(.15,28,20);sg.scale(.82,1.28,1.08);{const p=sg.attributes.position;for(let i=0;i<p.count;i++){const x=p.getX(i),y=p.getY(i),z=p.getZ(i);
    for(const ex of[-.055,.055]){const d=Math.hypot(x-ex,y-.03,z-.15);if(d<.07){const k=(1-d/.07)*.045;p.setXYZ(i,x,y,z-k)}}if(y<-.05&&z>0)p.setZ(i,z*.9);if(z<0)p.setZ(i,z*1.25+y*.1)}sg.computeVertexNormals()}
  deform(sg,.007,22,9);add(hd,sg,sk,0,.12,0);
- for(const ex of[-.052,.052]){add(hd,new THREE.SphereGeometry(.026,10,8),mouth,ex,.15,.1);add(hd,new THREE.SphereGeometry(.011,8,6),eye,ex,.15,.118);if(!phantom){const e=gs(0xff2a14,.5,.85);e.position.set(ex,.15,.13);hd.add(e)}}
+ for(const ex of[-.052,.052]){add(hd,new THREE.SphereGeometry(.026,10,8),mouth,ex,.15,.1);add(hd,new THREE.SphereGeometry(.011,8,6),eye,ex,.15,.118);if(!phantom){const e=gs(0xff2a14,.14,.9);e.position.set(ex,.15,.13);hd.add(e)}}
  add(hd,new THREE.SphereGeometry(.07,12,8).scale(1,.6,1),mouth,0,-.02,.07);
  for(let i=0;i<9;i++){const a=(i/8-.5)*2.2,t=add(hd,new THREE.ConeGeometry(.007,.05,4),tooth,Math.sin(a)*.065,-.02,.06+Math.cos(a)*.065);t.rotation.x=PI}
  const jaw=grp(hd,0,-.01,.02);J.jaw=jaw;const jg=new THREE.SphereGeometry(.1,16,10,0,TAU,PI*.5,PI*.5);jg.scale(.8,.9,1.25);add(jaw,jg,sk,0,0,.04);
@@ -66,7 +66,7 @@ function buildHands(){HAND.clear();const sl=new THREE.MeshStandardMaterial({colo
 
 /* ---------- menu / skin character (three.js "Soldier" rig, tinted per skin) ---------- */
 let hum=null,humMix=null,humAct={};
-function setSkin(i){sv.skin=i;put();if(!hum)return;const s=SK[i];hum.userData.mat.color.setHex(s.a).convertSRGBToLinear().multiplyScalar(1.6);const hb=hum.userData.head,old=hb.getObjectByName('gear');if(old)hb.remove(old);
+function setSkin(i){sv.skin=i;put();if(!hum)return;const s=SK[i];hum.userData.mat.color.setHex(s.a).convertSRGBToLinear().multiplyScalar(1.15);const hb=hum.userData.head,old=hb.getObjectByName('gear');if(old)hb.remove(old);
  const g=new THREE.Group;g.name='gear';const k=1/hum.userData.sc,M2=(c,r,m)=>new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:m||0});
  const add=(geo,m,x,y,z)=>{const o=new THREE.Mesh(geo,m);o.position.set(x*k,y*k,z*k);o.scale.setScalar(k);o.castShadow=true;g.add(o);return o};
  if(s.h===0){add(new THREE.SphereGeometry(.13,16,12).scale(1,.9,1.05),M2(0x4a5236,.9),0,.12,-.01);const mk=add(new THREE.CylinderGeometry(.05,.06,.08,12),M2(0x15161a,.6),0,.06,.12);mk.rotation.x=PI/2}

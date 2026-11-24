@@ -88,7 +88,7 @@ function startMission(i){audio();mi=i;md=Object.assign({},MS[i],{steps:MS[i].ste
  cam.add(fl);fl.position.set(.2,-.2,-.45);fl.target.position.set(.05,-.25,-8);cam.add(fl.target);fl.angle=.52;fl.penumbra=.55;fl.distance=34;HAND.visible=true;if(hum)hum.visible=false;
  cam.fov=72;cam.updateProjectionMatrix();S.fog.density=md.dark?.042:.032;
  mode='play';show('menu',0);show('pn',0);show('end',0);show('pause',0);show('hud',1);if(touch)show('tc',1);applyLayout();
- try{R.domElement.requestPointerLock()}catch(e){}
+ try{const q=R.domElement.requestPointerLock();q&&q.catch&&q.catch(()=>{})}catch(e){}
  R.compile(S,cam);
  if(i%6===0&&!sv.done[i])sub('Глава '+(i/6+1)+'. «'+CH[i/6|0]+'». '+CHT[i/6|0],9000);
  msg(md.intro);nextStep()}
@@ -307,7 +307,7 @@ function note(ti,x,cb){uiOpen=1;try{document.exitPointerLock()}catch(e){}show('p
 function keypad(cb){uiOpen=1;try{document.exitPointerLock()}catch(e){}show('pn',1);let v='';const c=$('pc');c.innerHTML='<h2>Пульт</h2><div id="kd">____</div><div id="kp">'+[1,2,3,4,5,6,7,8,9,'⌫',0,'OK'].map(k=>'<button data-v="'+k+'">'+k+'</button>').join('')+'</div><button data-v="x">Отмена</button>';
  const upd=()=>$('kd').textContent=(v+'____').slice(0,4);c.onclick=e=>{const b=e.target.closest('button');if(!b)return;const k=b.dataset.v;if(k===undefined)return;beep(900,.05,'square',.08);
   if(k==='x'){show('pn',0);uiOpen=0;relock();return}if(k==='⌫')v=v.slice(0,-1);else if(k==='OK'){show('pn',0);uiOpen=0;relock();cb(v===code);return}else if(v.length<4)v+=k;upd()}}
-function relock(){if(mode==='play'&&!touch)try{R.domElement.requestPointerLock()}catch(e){}}
+function relock(){if(mode==='play'&&!touch)try{const q=R.domElement.requestPointerLock();q&&q.catch&&q.catch(()=>{})}catch(e){}}
 function panel(k){show('pn',1);const c=$('pc');c.onclick=null;let h='';
  if(k==='s')h='<h2>Скины</h2><p>Монеты: '+sv.coins+'</p>'+SK.map((s,i)=>'<button data-s="'+i+'">'+s.n+(sv.own.includes(i)?(sv.skin===i?' — выбран':''):' — '+s.c+' монет')+'</button>').join('')+'<p id="pm"></p>';
  else if(k==='g')h='<h2>Настройки</h2><h3>Графика</h3>'+Q.map((q,i)=>'<button data-q="'+i+'">'+q.n+(sv.q===i?' — выбрано':'')+'</button>').join('')+
@@ -379,7 +379,7 @@ addEventListener('keydown',e=>{if(e.repeat&&e.code!=='KeyE')return;K[e.code]=1;i
 addEventListener('keyup',e=>{K[e.code]=0});addEventListener('blur',()=>{K={}});
 document.addEventListener('pointerlockchange',()=>{if(!document.pointerLockElement&&mode==='play'&&!uiOpen&&!touch)pause(1)});
 addEventListener('mousemove',e=>{if(mode==='play'&&!uiOpen&&(document.pointerLockElement||e.buttons&1)){const k=.0022*sv.sens;P.yaw-=e.movementX*k;P.pit=clamp(P.pit-e.movementY*k,-1.4,1.4)}});
-R.domElement.addEventListener('click',()=>{if(mode==='play'&&!touch&&!uiOpen)try{R.domElement.requestPointerLock()}catch(e){}});
+R.domElement.addEventListener('click',()=>{if(mode==='play'&&!touch&&!uiOpen)try{const q=R.domElement.requestPointerLock();q&&q.catch&&q.catch(()=>{})}catch(e){}});
 addEventListener('touchstart',e=>{if(mode!=='play'||uiOpen||$('tc').classList.contains('ed'))return;for(const q of e.changedTouches){if(q.target.closest&&q.target.closest('button'))continue;
  if(q.clientX<innerWidth*.45&&T.j==null){T.j=q.identifier;T.ox=q.clientX;T.oy=q.clientY;const j=$('jr');j.style.display='block';j.style.left=q.clientX+'px';j.style.top=q.clientY+'px'}
  else if(T.l==null){T.l=q.identifier;T.lx=q.clientX;T.ly=q.clientY}}if(e.target===R.domElement||e.target.id==='tc')e.preventDefault()},{passive:false});
