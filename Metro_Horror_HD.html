@@ -5302,7 +5302,9 @@ function makeRemote(){const gl=GLB.Soldier;if(!gl||!THREE.SkeletonUtils||!hum)re
  const gw=gs(0xeaf2ff,.6,.8);gw.position.set(0,0,.35);cg.add(gw);
  root.add(nameTag(p.name||'Напарник'));S.add(root);NET.av={root,m,mx,acts,cur:'Idle',cg,cone,gw,v:0,px:null,pz:null,fall:0,yaw:0}}
 function avUpdate(dt,s){const a=NET.av,r=NET.rp;a.root.position.set(s.x,0,s.z);a.yaw+=angDiff(a.yaw,s.y+PI)*Math.min(1,dt*14);a.root.rotation.y=a.yaw;
- if(a.px!=null){const v=Math.hypot(s.x-a.px,s.z-a.pz)/Math.max(dt,1e-3);a.v+=(Math.min(v,9)-a.v)*Math.min(1,dt*8)}a.px=s.x;a.pz=s.z;
+ if(a.px!=null){const ux=(s.x-a.px)/Math.max(dt,1e-3),uz=(s.z-a.pz)/Math.max(dt,1e-3),v=Math.hypot(ux,uz),k=Math.min(1,dt*8);a.v+=(Math.min(v,9)-a.v)*k;if(v<12){a.vx=(a.vx||0)+(ux-(a.vx||0))*k;a.vz=(a.vz||0)+(uz-(a.vz||0))*k}}a.px=s.x;a.pz=s.z;
+ /* body turns to face the direction of movement (the flashlight still follows the look direction) */
+ {const tg=Math.hypot(a.vx||0,a.vz||0)>.5?angDiff(a.yaw-PI,Math.atan2(-a.vx,-a.vz)):0;a.rel=(a.rel||0)+angDiff(a.rel||0,tg)*Math.min(1,dt*10);a.m.rotation.order='YXZ';a.m.rotation.y=PI+a.rel}
  const want=a.v<.35?'Idle':a.v<3.7?'Walk':'Run';if(want!==a.cur&&a.acts[want]){const n=a.acts[want],o=a.acts[a.cur];n.reset().fadeIn(.18).play();if(o)o.fadeOut(.18);a.cur=want}
  if(a.acts[a.cur]&&a.cur==='Walk')a.acts.Walk.timeScale=clamp(a.v/1.6,.6,1.6);a.mx.update(dt);
  a.root.visible=!r.hide;a.root.scale.y+=((r.crouch?.82:1)-a.root.scale.y)*Math.min(1,dt*10);
