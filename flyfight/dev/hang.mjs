@@ -1,0 +1,10 @@
+import { createRequire } from 'module'; const require = createRequire(import.meta.url); const { chromium } = require('/opt/node22/lib/node_modules/playwright');
+const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+const p = await b.newPage({ viewport: { width: 1280, height: 720 } });
+p.on('pageerror', e => console.log('ERR', e.message));
+await p.addInitScript(() => { localStorage.setItem('flyfight_save_v1', JSON.stringify({ settings: { quality: 3 }, credits: 999999, owned: ['mig29','su57','f22'], selected: 'su57' })); });
+await p.goto('file:///home/user/Qwerty-/flyfight/dist/FlyFight.html');
+await p.waitForTimeout(9000); await p.screenshot({ path: '/tmp/claude-0/s/h0.png' });
+await p.evaluate(() => { const h = window.__app.hangar; h.show('f22'); h.yaw = 2.3; h.auto = false; h.idle = -100; h.pitch = 0.35; });
+await p.waitForTimeout(5000); await p.screenshot({ path: '/tmp/claude-0/s/h1.png' });
+await b.close();

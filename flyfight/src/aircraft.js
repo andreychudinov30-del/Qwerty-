@@ -475,7 +475,7 @@ export function buildAircraft(spec, opts = {}) {
     const ptex = new THREE.CanvasTexture(pc); ptex.colorSpace = THREE.SRGBColorSpace;
     const panel = new THREE.Mesh(new THREE.PlaneGeometry(g.canopyW * 1.25, g.canopyW * 0.47), new THREE.MeshBasicMaterial({ map: ptex, toneMapped: false })); panel.position.set(0, baseY - 0.02, seatZ + 0.6); panel.rotation.x = -0.35; panel.rotation.y = Math.PI; panelMesh.add(panel);
     const shroud = new THREE.Mesh(new THREE.BoxGeometry(g.canopyW * 1.3, 0.05, 0.3), m.interior); shroud.position.set(0, baseY + 0.13, seatZ + 0.66); shroud.scale.z = 0.7; panelMesh.add(shroud);
-    const hud = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 0.18), new THREE.MeshBasicMaterial({ color: 0x40ff90, transparent: true, opacity: 0.08, depthWrite: false })); hud.position.set(0, baseY + 0.25, seatZ + 0.6); hud.rotation.x = 0.25; hud.rotation.y = Math.PI; panelMesh.add(hud);
+    const hud = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 0.18), new THREE.MeshBasicMaterial({ color: 0x9fffc8, transparent: true, opacity: 0.035, depthWrite: false })); hud.position.set(0, baseY + 0.25, seatZ + 0.6); hud.rotation.x = 0.25; hud.rotation.y = Math.PI; panelMesh.add(hud);
     const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.025, 0.35, 8), m.seat); stick.position.set(g.bubble && spec.id === 'f16' ? -0.28 : 0, baseY - 0.05, seatZ + 0.35); stick.rotation.x = 0.25; panelMesh.add(stick);
     root.add(panelMesh);
     panelMesh.userData.canvas = pc; panelMesh.userData.tex = ptex;
@@ -566,7 +566,7 @@ export function buildAircraft(spec, opts = {}) {
   for (const s of slots) { const mm = new THREE.Mesh(mg, m.missile); mm.position.set(s[0], s[1], s[2]); mm.castShadow = true; root.add(mm); missiles.push(mm); }
   // ---- landing gear (hangar)
   const gear = new THREE.Group(); gear.visible = !!opts.gear;
-  const gearDrop = g.bodyHb + 1.55 + (twin ? 0.3 : 0);
+  const gearDrop = g.bodyHb + 1.3 + (twin ? 0.25 : 0);
   if (hi) {
     const wheel = (r, w) => { const gg = new THREE.CylinderGeometry(r, r, w, 18); gg.rotateZ(Math.PI / 2); return gg; };
     const ny = P.body(0.24); const nz = zOf(0.24);

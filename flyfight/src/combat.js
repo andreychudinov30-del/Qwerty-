@@ -33,7 +33,7 @@ export class Plane {
     this.smokeT = 0; this.t = Math.random() * 10; this.radius = this.bomber ? 24 : spec.geo.L * 0.42;
     this.stealth = this.stats.stealth || 0; this.ace = !!o.ace;
     if (!this.bomber && game.Q.particles > 0.3) {
-      this.vortex = [game.fx.trail(60, 0.35, 0xffffff, 0.5, 1.4), game.fx.trail(60, 0.35, 0xffffff, 0.5, 1.4)];
+      this.vortex = [game.fx.trail(50, 0.2, 0xffffff, 0.32, 0.9), game.fx.trail(50, 0.2, 0xffffff, 0.32, 0.9)];
       this.contrail = [];
     }
   }

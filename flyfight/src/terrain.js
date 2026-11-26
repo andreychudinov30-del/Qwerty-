@@ -276,7 +276,8 @@ export class Terrain {
           vec4 d1 = texture2D(tD, vTW.xz/31.0); vec4 d2 = texture2D(tD, vTW.xz/230.0); vec4 d3 = texture2D(tD, vTW.xz/7.0);
           float nearF = 1.0 - smoothstep(1200.0, 7000.0, tdist);
           float near2 = 1.0 - smoothstep(150.0, 900.0, tdist);
-          tcol *= mix(1.0, 0.78 + 0.44*d2.g, 0.7);
+          tcol *= mix(1.0, 0.72 + 0.56*d2.g, 0.85);
+          vec4 d4 = texture2D(tD, vTW.xz/1300.0); tcol *= 0.86 + 0.28*d4.g;
           tcol *= mix(1.0, 0.72 + 0.56*d1.r, nearF);
           tcol *= mix(1.0, 0.8 + 0.4*d3.a, near2);
           diffuseColor.rgb *= tcol;
