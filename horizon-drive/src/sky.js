@@ -12,7 +12,7 @@ const cloudVS = `varying vec3 vW; void main(){ vec4 w = modelMatrix*vec4(positio
 const cloudFS = `uniform float uTime, uCover, uDark; uniform vec3 uSun, uSunCol, uAmb; varying vec3 vW;
 float h(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7)))*43758.5453); }
 float n(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f); return mix(mix(h(i),h(i+vec2(1,0)),f.x), mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x), f.y); }
-float fbm(vec2 p){ float s=0., a=.5; for(int i=0;i<6;i++){ s+=a*n(p); p=p*2.03+vec2(1.7,9.2); a*=.5; } return s; }
+float fbm(vec2 p){ float s=0., a=.5; for(int i=0;i<5;i++){ s+=a*n(p); p=p*2.03+vec2(1.7,9.2); a*=.5; } return s; }
 void main(){ vec2 p = vW.xz/2600. + vec2(uTime*0.004, uTime*0.0015);
   float d = fbm(p*3.0); float c = smoothstep(1.0-uCover, 1.0-uCover+0.35, d);
   float d2 = fbm(p*3.0 + uSun.xz*0.04); float shade = clamp(1.0 - (d2 - d)*6.0, 0.35, 1.2);
@@ -45,10 +45,13 @@ export class Atmosphere {
     // water
     if (world.waterY > -1e8) this.makeWater();
     // rain
-    this.rainN = Math.floor(9000 * Math.max(0.4, q.trees)); const rp = new Float32Array(this.rainN * 6); this.rainSeed = new Float32Array(this.rainN * 3);
-    for (let i = 0; i < this.rainN; i++) { this.rainSeed[i * 3] = Math.random() * 80 - 40; this.rainSeed[i * 3 + 1] = Math.random() * 40; this.rainSeed[i * 3 + 2] = Math.random() * 80 - 40; }
-    const rg = new THREE.BufferGeometry(); rg.setAttribute('position', new THREE.BufferAttribute(rp, 3));
-    this.rain = new THREE.LineSegments(rg, new THREE.LineBasicMaterial({ color: 0xaabbcc, transparent: true, opacity: 0.35, fog: false })); this.rain.frustumCulled = false; this.rain.visible = false; scene.add(this.rain);
+    this.rainN = Math.floor(9000 * Math.max(0.4, q.trees)); const rp = new Float32Array(this.rainN * 6), re = new Float32Array(this.rainN * 2);
+    for (let i = 0; i < this.rainN; i++) { const x = Math.random() * 80 - 40, y = Math.random() * 40, z = Math.random() * 80 - 40; rp.set([x, y, z, x, y, z], i * 6); re[i * 2 + 1] = 1; }
+    const rg = new THREE.BufferGeometry(); rg.setAttribute('position', new THREE.BufferAttribute(rp, 3)); rg.setAttribute('aEnd', new THREE.BufferAttribute(re, 1));
+    this.rainMat = new THREE.ShaderMaterial({ uniforms: { uCam: { value: new THREE.Vector3() }, uT: { value: 0 } }, transparent: true, depthWrite: false, fog: false,
+      vertexShader: 'attribute float aEnd; uniform vec3 uCam; uniform float uT; void main(){ float y = 40.0 - mod(position.y + uT * 28.0, 40.0); vec3 p = vec3(uCam.x + position.x, uCam.y - 12.0 + y, uCam.z + position.z) + aEnd * vec3(0.05, -0.9, 0.03); gl_Position = projectionMatrix * viewMatrix * vec4(p, 1.0); }',
+      fragmentShader: 'void main(){ gl_FragColor = vec4(0.667, 0.733, 0.8, 0.35); }' });
+    this.rain = new THREE.LineSegments(rg, this.rainMat); this.rain.frustumCulled = false; this.rain.visible = false; scene.add(this.rain);
     this.moonLight = new THREE.DirectionalLight(0x8fa8ff, 0.0); scene.add(this.moonLight);
     this.sunDir = new THREE.Vector3(); this.setTime(13);
   }
@@ -93,7 +96,7 @@ export class Atmosphere {
     this.r.toneMappingExposure = lerp(1.5, 0.78, day) * (1 + cov * 0.25);
   }
   updateEnv(force) {
-    if (!force && this.sunDir.distanceTo(this.lastEnvSun) < 0.02) return; this.lastEnvSun.copy(this.sunDir);
+    if (!force && this.sunDir.distanceTo(this.lastEnvSun) < 0.035) return; this.lastEnvSun.copy(this.sunDir);
     if (this.envRT) this.envRT.dispose(); this.envRT = this.pmrem.fromScene(this.envScene, 0, 1, 2000, { size: this.q.envRes }); this.scene.environment = this.envRT.texture;
     this.scene.environmentIntensity = lerp(0.08, 1.0, this.day) * (1 - this.cover * 0.35);
   }
@@ -103,17 +106,13 @@ export class Atmosphere {
     const fd = this.fogTarget || 0.00022; this.scene.fog.density = lerp(this.scene.fog.density, fd * (this.world.biome === 'city' ? 1.0 : 1.0), Math.min(1, dt * 0.5));
     this.wet = clamp(this.wet + (this.weather === 'rain' ? dt * 0.05 : -dt * 0.02), 0, 1); wetUniform.value = this.wet;
     this.applySun();
-    this.envTimer -= dt; if (this.envTimer <= 0) { this.envTimer = 1.5; this.updateEnv(); }
+    this.envTimer -= dt; if (this.envTimer <= 0) { this.envTimer = 2.5; this.updateEnv(); }
     // shadow follows focus
     this.sun.position.copy(focus).addScaledVector(this.sunDir.y > 0.02 ? this.sunDir : new THREE.Vector3(0, 1, 0), 300); this.sun.target.position.copy(focus);
     if (this.sun.castShadow) { const e = this.sun.shadow.camera.right * 2 / this.sun.shadow.mapSize.x; const m = this.sun.shadow.camera.matrixWorldInverse; }
     this.clouds.position.x = camPos.x; this.clouds.position.z = camPos.z; this.stars.position.copy(camPos);
     if (this.water && this.water.material.uniforms && this.water.material.uniforms.time) this.water.material.uniforms.time.value += dt * 0.6;
     else if (this.water) { const n = this.water.material.normalMap; n.offset.x += dt * 0.004; n.offset.y += dt * 0.002; }
-    if (this.rain.visible) {
-      const p = this.rain.geometry.attributes.position.array; const s = this.rainSeed; const t = timeUniform.value;
-      for (let i = 0; i < this.rainN; i++) { const y = 40 - ((s[i * 3 + 1] + t * 28) % 40); const x = camPos.x + s[i * 3], z = camPos.z + s[i * 3 + 2]; const o = i * 6; p[o] = x; p[o + 1] = camPos.y - 12 + y; p[o + 2] = z; p[o + 3] = x + 0.05; p[o + 4] = camPos.y - 12 + y - 0.9; p[o + 5] = z + 0.03; }
-      this.rain.geometry.attributes.position.needsUpdate = true;
-    }
+    if (this.rain.visible) { this.rainMat.uniforms.uCam.value.copy(camPos); this.rainMat.uniforms.uT.value = timeUniform.value; }
   }
 }

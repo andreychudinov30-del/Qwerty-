@@ -278,6 +278,7 @@ class Race {
     const scene = this.scene = new THREE.Scene(); this.camera = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, 0.25, 12000);
     const w = this.world = new World(this.def, Q); w.genTrack(); await step(0.2, 'Рельеф и ландшафт…'); w.genGrid(); await step(0.35, 'Меш рельефа и PBR-материалы…'); w.buildTerrain(); await step(0.5, 'Дорога, разметка, ограждения, мосты и тоннели…'); w.buildRoad(); w.buildStructures(); scene.add(w.group);
     await step(0.62, 'Растительность, здания, объекты…'); this.props = buildProps(w, Q); scene.add(this.props.group);
+    for (const g of [w.group, this.props.group]) { g.traverse(o => { o.matrixAutoUpdate = false; o.updateMatrix(); }); g.updateMatrixWorld(true); }
     await step(0.75, 'Небо, облака, погода, вода…'); this.atm = new Atmosphere(renderer, scene, w, Q);
     const set = S().settings; const tod = { dynamic: 8 + Math.random() * 10, morning: 7.5, noon: 13, sunset: 18.6, night: 22.5 }[set.timeOfDay]; this.dynamicTime = set.timeOfDay === 'dynamic'; this.atm.setTime(tod);
     const wt = set.weather === 'random' ? (['clear', 'clear', 'cloudy', 'rain', 'clear', 'fog'][Math.floor(Math.random() * 6)]) : set.weather; this.atm.setWeather(wt); this.atm.cover = this.atm.targetCover; if (wt === 'rain') this.atm.wet = 0.8; this.atm.updateEnv(true);
@@ -392,7 +393,7 @@ class Race {
       }
       if (c.backfire > 0.15 && Math.random() < 0.3) { const ex = c.pos.x - sy * c.p.halfL * 0.98, ez = c.pos.z - cy * c.p.halfL * 0.98; for (let k = 0; k < 4; k++) this.sparks.emit(ex + (Math.random() - 0.5) * 0.3, c.pos.y + 0.35, ez, -sy * 4 + c.vel.x, 0.3, -cy * 4 + c.vel.z, 0.25, 0.5, 0.12, 1, 0.45, 0.1, 1); }
     }
-    this.smoke.update(dt); this.sparks.update(dt);
+    this.skids.flush(); this.smoke.update(dt); this.sparks.update(dt);
   }
   updateDrift(dt) {
     const v = this.player, d = this.drift; const sp = Math.abs(v.speed); const vel = Math.hypot(v.vel.x, v.vel.z);
@@ -454,6 +455,7 @@ class Race {
     $('ov').classList.remove('hidden'); $('rRetry').onclick = () => { const d = this.def.id, m = this.mode; endRace(); startRace(d, m); }; $('rMenu').onclick = () => { endRace(); showMenu(); };
   }
   hud(dt) {
+    this.hudT = (this.hudT || 0) + dt; if (this.hudT < 1 / 30) return; this.hudT = 0;
     const p = this.player, set = S().settings; const mph = set.units === 'mph'; const spd = Math.abs(p.speed) * (mph ? 2.237 : 3.6);
     const order = this.mode === 'race' ? this.standings() : [p]; const pos = order.indexOf(p) + 1;
     $('pos').classList.toggle('hidden', this.mode !== 'race'); $('pos').querySelector('.v').innerHTML = `${pos}<small>/${order.length}</small>`;

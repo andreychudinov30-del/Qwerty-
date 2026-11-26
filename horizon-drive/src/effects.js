@@ -52,7 +52,8 @@ export class Skids {
     const k = this.i; this.i = (this.i + 1) % this.max; const o = k * 12;
     const P = this.pos; P.set([l[0] + l[3] * w, l[1] + 0.03, l[2] + l[4] * w, l[0] - l[3] * w, l[1] + 0.03, l[2] - l[4] * w, x + rx * w, y + 0.03, z + rz * w, x - rx * w, y + 0.03, z - rz * w], o);
     this.a.set([alpha, alpha, alpha, alpha], k * 4);
-    this.mesh.geometry.attributes.position.needsUpdate = true; this.mesh.geometry.attributes.aA.needsUpdate = true;
+    this.dirty = true;
   }
+  flush() { if (!this.dirty) return; this.dirty = false; this.mesh.geometry.attributes.position.needsUpdate = true; this.mesh.geometry.attributes.aA.needsUpdate = true; }
   cut(key) { this.last.delete(key); }
 }

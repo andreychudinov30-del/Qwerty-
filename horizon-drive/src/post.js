@@ -13,8 +13,9 @@ const FinalShader = {
   fragmentShader: `uniform sampler2D tDiffuse; uniform float uBlur, uVig, uCA, uTime, uFlash; uniform vec2 uCenter; varying vec2 vUv;
     void main(){ vec2 d = vUv - uCenter; float r = length(d); vec3 c = vec3(0.);
       float amt = uBlur * smoothstep(0.12, 0.7, r);
-      for (int i = 0; i < 10; i++) { float t = float(i) / 9.0; vec2 uv = vUv - d * amt * t * 0.09; c += texture2D(tDiffuse, uv).rgb; }
-      c /= 10.0;
+      if (amt < 0.0008) { c = texture2D(tDiffuse, vUv).rgb; } else {
+        for (int i = 0; i < 10; i++) { float t = float(i) / 9.0; vec2 uv = vUv - d * amt * t * 0.09; c += texture2D(tDiffuse, uv).rgb; }
+        c /= 10.0; }
       vec2 off = d * uCA * (1.0 + uBlur * 2.0); c.r = mix(c.r, texture2D(tDiffuse, vUv + off).r, 0.6); c.b = mix(c.b, texture2D(tDiffuse, vUv - off).b, 0.6);
       float lum = dot(c, vec3(0.2126, 0.7152, 0.0722)); c = max(vec3(0.0), mix(vec3(lum), c, 1.18));
       c *= 1.0 - uVig * smoothstep(0.35, 0.95, r * 1.25);
