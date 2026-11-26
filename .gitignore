@@ -5,3 +5,5 @@ dist-ssr
 .DS_Store
 dist-single
 MetroHorror.html
+horizon-drive/assets/*_raw.jpg
+horizon-drive/assets/waternormals_raw.jpg
