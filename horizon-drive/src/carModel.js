@@ -272,3 +272,52 @@ export class CarVisual {
   }
   dispose() { this.root.traverse(o => { if (o.isMesh && o.userData.own) o.geometry.dispose(); }); }
 }
+
+// ---------- mobile LOD: vertex-cluster decimation + per-material merge (used for AI cars) ----------
+const lodCache = new Map();
+function clusterGeometry(geo, cell) {
+  if (lodCache.has(geo)) return lodCache.get(geo);
+  const P = geo.attributes.position, N = geo.attributes.normal, U = geo.attributes.uv; const idx = geo.index; const triCount = (idx ? idx.count : P.count) / 3;
+  if (triCount < 400) { lodCache.set(geo, geo); return geo; }
+  const map = new Map(); const pos = [], nor = [], uv = [], cnt = [], fn = []; const remap = new Int32Array(P.count).fill(-1); const inv = 1 / cell;
+  for (let i = 0; i < P.count; i++) {
+    const x = P.getX(i), y = P.getY(i), z = P.getZ(i);
+    const key = (Math.floor(x * inv) + 512) * 1048576 + (Math.floor(y * inv) + 512) * 1024 + (Math.floor(z * inv) + 512);
+    let j = map.get(key);
+    if (j === undefined) { j = cnt.length; map.set(key, j); pos.push(0, 0, 0); nor.push(0, 0, 0); uv.push(U ? U.getX(i) : 0, U ? U.getY(i) : 0); cnt.push(0); fn.push(N ? N.getX(i) : 0, N ? N.getY(i) : 1, N ? N.getZ(i) : 0); }
+    pos[j * 3] += x; pos[j * 3 + 1] += y; pos[j * 3 + 2] += z; if (N) { nor[j * 3] += N.getX(i); nor[j * 3 + 1] += N.getY(i); nor[j * 3 + 2] += N.getZ(i); } cnt[j]++; remap[i] = j;
+  }
+  for (let j = 0; j < cnt.length; j++) { const c = cnt[j]; pos[j * 3] /= c; pos[j * 3 + 1] /= c; pos[j * 3 + 2] /= c; let l = Math.hypot(nor[j * 3], nor[j * 3 + 1], nor[j * 3 + 2]); if (l < 0.3 * c) { nor[j * 3] = fn[j * 3]; nor[j * 3 + 1] = fn[j * 3 + 1]; nor[j * 3 + 2] = fn[j * 3 + 2]; l = Math.hypot(nor[j * 3], nor[j * 3 + 1], nor[j * 3 + 2]) || 1; } nor[j * 3] /= l; nor[j * 3 + 1] /= l; nor[j * 3 + 2] /= l; }
+  const out = []; const seen = new Set();
+  for (let t = 0; t < triCount; t++) {
+    const a = remap[idx ? idx.getX(t * 3) : t * 3], b = remap[idx ? idx.getX(t * 3 + 1) : t * 3 + 1], c = remap[idx ? idx.getX(t * 3 + 2) : t * 3 + 2];
+    if (a === b || b === c || a === c) continue;
+    const mn = Math.min(a, b, c), mx = Math.max(a, b, c), md = a + b + c - mn - mx; const k = (mn * 131072 + md) * 131072 + mx;
+    if (seen.has(k)) continue; seen.add(k); out.push(a, b, c);
+  }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(out);
+  g.computeBoundingSphere(); g.computeBoundingBox(); lodCache.set(geo, g); return g;
+}
+function stripGeo(g) { const o = new THREE.BufferGeometry(); o.setAttribute('position', g.attributes.position.clone()); if (g.attributes.normal) o.setAttribute('normal', g.attributes.normal.clone()); else return null; o.setAttribute('uv', g.attributes.uv ? g.attributes.uv.clone() : new THREE.BufferAttribute(new Float32Array(g.attributes.position.count * 2), 2)); if (g.index) o.setIndex(g.index.clone()); else return null; return o; }
+function mergeByMaterial(meshes, parent, rootInv) {
+  const groups = new Map();
+  for (const m of meshes) { let v = m; let ok = true; while (v && v !== parent) { if (!v.visible) { ok = false; break; } v = v.parent; } if (!ok) continue; const g = stripGeo(m.geometry); if (!g) continue; const rel = new THREE.Matrix4().multiplyMatrices(rootInv, m.matrixWorld); if (rel.determinant() <= 0) continue; g.applyMatrix4(rel); const k = m.material.uuid; if (!groups.has(k)) groups.set(k, { mat: m.material, geos: [], meshes: [], cast: m.castShadow }); const e = groups.get(k); e.geos.push(g); e.meshes.push(m); }
+  for (const e of groups.values()) { if (e.geos.length < 2) continue; const merged = mergeGeometries(e.geos, false); if (!merged) continue; const mesh = new THREE.Mesh(merged, e.mat); mesh.castShadow = e.cast; mesh.receiveShadow = true; for (const m of e.meshes) m.parent.remove(m); parent.add(mesh); }
+}
+export function optimizeBotVisual(vis, cell = 0.025) {
+  vis.root.updateMatrixWorld(true);
+  const wheelMeshes = []; for (const w of vis.wheels) w.node.traverse(o => { if (o.isMesh) wheelMeshes.push(o); });
+  for (const m of [...vis.meshes, ...wheelMeshes]) m.geometry = clusterGeometry(m.geometry, cell);
+  if (vis.bodyMesh) vis.bodyMesh.userData.own = false;
+  // drop interior parts: never visible for AI cars
+  for (const m of vis.meshes) if (m.userData.interior && m.parent) m.parent.remove(m);
+  vis.meshes = vis.meshes.filter(m => m.parent);
+  vis.root.updateMatrixWorld(true);
+  const stat = vis.meshes.filter(m => m !== vis.bodyMesh && m.parent && m.geometry.index); mergeByMaterial(stat, vis.scaleG, new THREE.Matrix4().copy(vis.scaleG.matrixWorld).invert());
+  for (const w of vis.wheels) { const ms = []; w.node.traverse(o => { if (o.isMesh) ms.push(o); }); mergeByMaterial(ms, w.node, new THREE.Matrix4().copy(w.node.matrixWorld).invert()); w.rim = null; w.centre = []; w.rimGroup = []; }
+}
+export function optimizePlayerVisual(vis, cell = 0.008) {
+  const wheelMeshes = []; for (const w of vis.wheels) w.node.traverse(o => { if (o.isMesh) wheelMeshes.push(o); });
+  for (const m of [...vis.meshes, ...wheelMeshes]) m.geometry = clusterGeometry(m.geometry, cell);
+  if (vis.bodyMesh) vis.bodyMesh.userData.own = false;
+}

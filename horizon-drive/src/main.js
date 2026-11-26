@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { CARS, CLASSES, TRACKS, MODES, DIFFICULTY, PERF, TIRES, FINISHES, RIMS, SPOILERS, FRONTS, SKIRTS, WIDEBODY, LIVERIES, DECALS, PAINTS, NEONS, HEADLIGHTS, QUALITY } from './data.js';
 import { load, save, S, defaultTune, resetSave } from './save.js';
 import { loadStudioHDR } from './assets.js';
-import { initCarBase, CarVisual } from './carModel.js';
+import { initCarBase, CarVisual, optimizeBotVisual, optimizePlayerVisual } from './carModel.js';
 import { Showroom } from './showroom.js';
 import { World, timeUniform } from './world.js';
 import { buildProps, nightUniform } from './props.js';
@@ -41,13 +41,13 @@ async function boot() {
   applyQualityOverrides();
   $('tip').textContent = TIPS[Math.floor(Math.random() * TIPS.length)];
   renderer = new THREE.WebGLRenderer({ canvas: $('gl'), antialias: false, powerPreference: 'high-performance', stencil: false });
-  renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.AgXToneMapping; renderer.toneMappingExposure = 1.0;
+  window.__renderer = renderer; renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.AgXToneMapping; renderer.toneMappingExposure = 1.0;
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   dynPR = Math.min(window.devicePixelRatio, Q.pr * set.resScale); renderer.setPixelRatio(dynPR); renderer.setSize(innerWidth, innerHeight);
   progress(0.1, 'Распаковка 3D-модели автомобиля (Draco)…');
   await initCarBase(); progress(0.5, 'HDR-освещение студии…');
   const hdr = await loadStudioHDR(); progress(0.7, 'Сборка шоурума…');
-  showroom = new Showroom(renderer, hdr, Q);
+  showroom = new Showroom(renderer, hdr, Q); window.__showroom = showroom;
   post = new Post(renderer, showroom.scene, showroom.camera, Q);
   progress(0.9, 'Подготовка автомобиля…'); setCarPreview();
   await new Promise(r => setTimeout(r, 50));
@@ -60,7 +60,7 @@ async function boot() {
   document.addEventListener('keydown', () => initAudio());
   document.addEventListener('visibilitychange', () => { if (document.hidden && race && race.state === 'race') pauseRace(true); });
 }
-function applyQualityOverrides() { const s = S().settings; Q.draw *= s.drawDist; Q.trees *= s.effects >= 0.5 ? 1 : 0.7; if (!s.shadows) Q.shadow = 0; Q.mblur = Q.mblur && s.mblur; fpsCap = s.fpsCap; }
+function applyQualityOverrides() { const s = S().settings; if (isMobile) { Q.mobile = true; Q.msaa = 0; Q.shadow = Q.shadow ? Math.min(Q.shadow, 1024) : 0; Q.water = false; Q.grass *= 0.6; Q.envRes = Math.min(Q.envRes, 128); } Q.draw *= s.drawDist; Q.trees *= s.effects >= 0.5 ? 1 : 0.7; if (!s.shadows) Q.shadow = 0; Q.mblur = Q.mblur && s.mblur; fpsCap = s.fpsCap; }
 function progress(f, txt) { $('loadBar').style.width = (f * 100) + '%'; if (txt) $('loadTxt').textContent = txt; }
 function onResize() {
   renderer.setSize(innerWidth, innerHeight); const a = innerWidth / innerHeight;
@@ -296,8 +296,8 @@ class Race {
       const row = Math.floor(i / 2), lat = (i % 2 ? -1 : 1) * w.hw * 0.4; const tt = w.length - 14 - row * 10 - (i % 2) * 4;
       const p0 = w.pointAt(tt, lat), p1 = w.pointAt(tt + 2, lat); veh.place(p0.x, p0.y, p0.z, Math.atan2(p1.x - p0.x, p1.z - p0.z));
       veh.lap = 0; veh.lastT = tt; veh.prog = tt - w.length; veh.raceDist = veh.prog; veh.name = isP ? 'Вы' : names[i % names.length]; veh.vis = vis; veh.isPlayer = isP; veh.finished = false; veh.lapTimes = []; veh.lapStart = 0;
-      if (!isP) { veh.bot = new BotDriver(veh, w, diff, i); vis.setInteriorVisible(false); }
-      else { this.player = veh; vis.addHeadlights(); }
+      if (!isP) { veh.bot = new BotDriver(veh, w, diff, i); vis.setInteriorVisible(false); if (isMobile) optimizeBotVisual(vis); }
+      else { this.player = veh; vis.addHeadlights(); if (isMobile) optimizePlayerVisual(vis); }
       scene.add(vis.root); this.cars.push(veh);
     }
     this.smoke = new Particles(scene, Math.floor(1500 * Math.max(0.4, Q.trees))); this.sparks = new Particles(scene, 400, true); this.skids = new Skids(scene, isMobile ? 1500 : 4000);
@@ -520,13 +520,13 @@ function loop(now) {
   else if (!race) showroom.update(dt);
   if (race && screen !== 'race' && race.state === 'paused') { /* keep last frame */ }
   post.final.uniforms.uTime.value = now / 1000;
-  if (!window.__noRender || (window.__snap > 0 && window.__snap--)) post.draw(dt);
+  if (!window.__noRender || (window.__snap > 0 && window.__snap--)) { post.draw(dt); if (window.__cap) { window.__cap = false; window.__capData = renderer.domElement.toDataURL('image/jpeg', 0.85); } }
   // fps + dynamic resolution
   fpsAcc += rdt; fpsN++; ftAvg = lerp(ftAvg, rdt * 1000, 0.05);
   if (fpsAcc > 0.5) { if (S().settings.showFps) $('fps').textContent = Math.round(fpsN / fpsAcc) + ' FPS • ' + renderer.getPixelRatio().toFixed(2) + 'x • ' + Q.name; fpsAcc = 0; fpsN = 0; }
   prTimer += dt;
-  if (race && prTimer > 1.5) { prTimer = 0; const target = 1000 / (fpsCap > 0 ? Math.min(fpsCap, 60) : 60); const base = Math.min(window.devicePixelRatio, Q.pr * S().settings.resScale); let pr = renderer.getPixelRatio();
-    if (ftAvg > target * 1.25 && pr > base * 0.55) pr = Math.max(base * 0.55, pr - 0.1); else if (ftAvg < target * 1.05 && pr < base) pr = Math.min(base, pr + 0.05);
+  if (race && prTimer > (isMobile ? 0.8 : 1.5)) { prTimer = 0; const target = isMobile ? 1000 / 54 : 1000 / (fpsCap > 0 ? Math.min(fpsCap, 60) : 60); const base = Math.min(window.devicePixelRatio, Q.pr * S().settings.resScale); let pr = renderer.getPixelRatio(); const floor = isMobile ? 0.4 : 0.55;
+    if (ftAvg > target * 1.12 && pr > base * floor) pr = Math.max(base * floor, pr - (isMobile ? 0.15 : 0.1)); else if (ftAvg < target * 0.9 && pr < base) pr = Math.min(base, pr + 0.05);
     if (Math.abs(pr - renderer.getPixelRatio()) > 0.01) { renderer.setPixelRatio(pr); post.resize(); } }
 }
 

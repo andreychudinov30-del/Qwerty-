@@ -108,7 +108,7 @@ function cactusGeo() {
   const arm = (y, s, h) => { const a = mk(0.22, h); a.translate(s * 0.75, y, 0); const e = new THREE.TorusGeometry(0.37, 0.2, 8, 10, Math.PI / 2); e.rotateZ(s > 0 ? -Math.PI / 2 : Math.PI); e.translate(s * 0.37, y, 0); const m = mergeGeometries([a, e.toNonIndexed()]); paint(m, 0x4d6838); return m; };
   return mergeGeometries([body, arm(2.4, 1, 2.4), arm(3.2, -1, 1.8)]);
 }
-function rockGeo(seed) { const n = makeNoise(seed); const g = new THREE.IcosahedronGeometry(1, 4); const p = g.attributes.position; for (let i = 0; i < p.count; i++) { const v = new THREE.Vector3().fromBufferAttribute(p, i); const k = 1 + 0.35 * n.fbm(v.x * 1.3 + seed, v.z * 1.3 + v.y, 4); v.multiplyScalar(k); v.y *= 0.65; p.setXYZ(i, v.x, v.y, v.z); } g.computeVertexNormals(); return g; }
+function rockGeo(seed, detail = 4) { const n = makeNoise(seed); const g = new THREE.IcosahedronGeometry(1, detail); const p = g.attributes.position; for (let i = 0; i < p.count; i++) { const v = new THREE.Vector3().fromBufferAttribute(p, i); const k = 1 + 0.35 * n.fbm(v.x * 1.3 + seed, v.z * 1.3 + v.y, 4); v.multiplyScalar(k); v.y *= 0.65; p.setXYZ(i, v.x, v.y, v.z); } g.computeVertexNormals(); return g; }
 
 const cardMat = (map, opts = {}) => {
   const m = new THREE.MeshStandardMaterial({ map, alphaTest: 0.45, side: THREE.DoubleSide, vertexColors: true, roughness: 0.85, ...opts });
@@ -153,7 +153,7 @@ export function buildProps(world, q) {
       const s = 0.7 + r() * 0.8; items.push([x, o.h - 0.3, z, s, r() * 6.28, (r() - 0.5) * 0.06, 0.9 + r() * 0.3]); if (o.rd < 90) addCol(x, z, 0.5 * s);
     }
     const nearMat = cardMat(branchTex()); const farMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 });
-    sets.push(new LODSet(g, pineGeo(true), pineGeo(false), nearMat, farMat, items, 160 * Math.min(1.4, q.trees + 0.3), draw * 0.9));
+    sets.push(new LODSet(g, pineGeo(true), pineGeo(false), nearMat, farMat, items, 160 * Math.min(1.4, q.trees + 0.3) * (q.mobile ? 0.75 : 1), draw * 0.9));
     rocks(['rock'], 900);
     grass([['#3d5a1f', '#86a04a'], ['#4a6b25', '#a4b860'], ['#56682e', '#b9b878']], SURF.GRASS);
   } else if (world.biome === 'city') {
@@ -175,7 +175,7 @@ export function buildProps(world, q) {
   function rocks(set, count, big = 1) {
     const items = []; for (let i = 0; i < count * Math.min(1.2, q.trees + 0.2); i++) { const x = (r() * 2 - 1) * E, z = (r() * 2 - 1) * E; const o = okAt(x, z, hw + 5, 0.9); if (!o) continue; const s = (0.5 + r() ** 3 * 4) * big; items.push([x, o.h - s * 0.2, z, s, r() * 6.28, 0, 0.8 + r() * 0.6]); if (o.rd < 90 && s > 0.8) addCol(x, z, s * 0.9); }
     const m = pbr('rock', 1); if (world.biome === 'desert') m.color.setHex(0xe0b089);
-    sets.push(new LODSet(g, rockGeo(3), rockGeo(3).toNonIndexed(), m, m, items, draw, draw));
+    sets.push(new LODSet(g, rockGeo(3), rockGeo(3, 1), m, m, items, 130, draw));
   }
   function grass(cols, surf, dens = 1) {
     if (!q.grass) return; const items = []; const n = Math.floor(30000 * q.grass * dens);

@@ -210,7 +210,7 @@ export class World {
 
   // ---------------- terrain mesh ----------------
   buildTerrain() {
-    const seg = Math.round(170 + 230 * Math.min(1, this.q.trees)); const ext = 7000, inner = this.E;
+    let seg = Math.round(170 + 230 * Math.min(1, this.q.trees)); if (this.q.mobile) seg = Math.min(seg, 300); const ext = 7000, inner = this.E;
     const warp = u => { const a = Math.abs(u); const c = 0.62; const r = a < c ? a / c * inner : inner + Math.pow((a - c) / (1 - c), 1.8) * (ext - inner); return Math.sign(u) * r; };
     const V = seg + 1; const pos = new Float32Array(V * V * 3), uv = new Float32Array(V * V * 2), col = new Float32Array(V * V * 3), spl = new Float32Array(V * V * 3);
     const hs = new Float32Array(V * V);

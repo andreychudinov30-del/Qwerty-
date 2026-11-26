@@ -31,7 +31,7 @@ export class Post {
     this.composer = new EffectComposer(renderer, rt);
     this.render = new RenderPass(scene, camera); this.composer.addPass(this.render);
     if (q.ao) { this.ao = new GTAOPass(scene, camera, size.x, size.y); this.ao.output = GTAOPass.OUTPUT.Default; this.ao.blendIntensity = 0.85; this.ao.updateGtaoMaterial({ radius: 0.6, distanceExponent: 1.5, thickness: 1.5, scale: 1 }); this.composer.addPass(this.ao); }
-    if (q.bloom) { this.bloom = new UnrealBloomPass(new THREE.Vector2(size.x / 2, size.y / 2), 0.32, 0.55, 0.92); this.composer.addPass(this.bloom); }
+    if (q.bloom) { this.bloom = new UnrealBloomPass(new THREE.Vector2(size.x / (q.mobile ? 4 : 2), size.y / (q.mobile ? 4 : 2)), 0.32, 0.55, 0.92); this.composer.addPass(this.bloom); }
     this.final = new ShaderPass(FinalShader); this.composer.addPass(this.final);
     this.composer.addPass(new OutputPass());
     if (!q.msaa) { this.fxaa = new ShaderPass(FXAAShader); this.composer.addPass(this.fxaa); }
