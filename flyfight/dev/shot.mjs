@@ -1,0 +1,12 @@
+import { createRequire } from 'module'; const require = createRequire(import.meta.url); const { chromium } = require('/opt/node22/lib/node_modules/playwright');
+import * as esbuild from 'esbuild';
+const [entry, out, query = ''] = process.argv.slice(2);
+const r = await esbuild.build({ entryPoints: [entry], bundle: true, write: false, format: 'iife' });
+const html = `<html><body style="margin:0"><script>${r.outputFiles[0].text}</script></body></html>`;
+const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+const p = await b.newPage({ viewport: { width: 1400, height: 900 } });
+p.on('console', m => console.log('console:', m.text())); p.on('pageerror', e => console.log('ERR', e.message));
+await p.route('http://x/**', rt => rt.fulfill({ body: html, contentType: 'text/html' }));
+await p.goto('http://x/' + query);
+await p.waitForFunction(() => window.done, null, { timeout: 120000 }).catch(e => console.log('timeout'));
+await p.screenshot({ path: out }); await b.close();

@@ -1,0 +1,22 @@
+import { createRequire } from 'module'; const require = createRequire(import.meta.url); const { chromium, devices } = require('/opt/node22/lib/node_modules/playwright');
+const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+const ctx = await b.newContext({ ...devices['iPhone 13 landscape'] });
+const p = await ctx.newPage();
+p.on('pageerror', e => console.log('ERR', e.message, e.stack));
+await p.addInitScript(() => { localStorage.setItem('flyfight_save_v1', JSON.stringify({ settings: { quality: 1, fpsShow: true }, credits: 50000 })); });
+await p.goto('file:///home/user/Qwerty-/flyfight/dist/FlyFight.html');
+await p.waitForTimeout(6000); await p.screenshot({ path: '/tmp/claude-0/s/t0.png' });
+await p.tap('[data-a=aircraft]'); await p.waitForTimeout(2500); await p.screenshot({ path: '/tmp/claude-0/s/t1.png' });
+await p.tap('[data-id=su27]'); await p.waitForTimeout(2500); await p.tap('.tab[data-t=paint]'); await p.waitForTimeout(500); await p.tap('[data-p=tiger]'); await p.waitForTimeout(3000); await p.screenshot({ path: '/tmp/claude-0/s/t2.png' });
+await p.tap('[data-a=back]'); await p.waitForTimeout(800); await p.tap('[data-a=missions]'); await p.waitForTimeout(800); await p.screenshot({ path: '/tmp/claude-0/s/t3.png' });
+await p.tap('[data-m="1"]'); await p.waitForTimeout(800); await p.tap('[data-a=go]'); await p.waitForFunction(() => window.__app.state === 'game', null, { timeout: 120000 });
+await p.waitForTimeout(3000);
+// touch: drag stick
+const cdp = await ctx.newCDPSession(p);
+await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 150, y: 250, id: 1 }, { x: 700, y: 330, id: 2 }] });
+await p.waitForTimeout(300);
+await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: 150, y: 300, id: 1 }, { x: 700, y: 330, id: 2 }] });
+await p.waitForTimeout(2500); await p.screenshot({ path: '/tmp/claude-0/s/t4.png' });
+console.log(await p.evaluate(() => JSON.stringify({ stick: window.__app.input.stick, gun: window.__app.input.btn.gun, ammo: window.__app.match.player.ammo })));
+await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+await b.close();
