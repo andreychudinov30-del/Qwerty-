@@ -5,13 +5,13 @@ import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPa
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { SMAAPass } from 'three/examples/jsm/postprocessing/SMAAPass.js';
 import { QUALITY } from './data.js';
-import { save } from './save.js';
+import { save, persist } from './save.js';
 import { clamp } from './util.js';
 
 export function defaultQuality() {
   const mob = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.platform));
   const cores = navigator.hardwareConcurrency || 4;
-  if (mob) return cores >= 8 ? 2 : 1;
+  if (mob) return 1;
   return cores >= 8 ? 3 : 2;
 }
 export class Engine {
@@ -24,8 +24,12 @@ export class Engine {
     this.scale = 1; this.ft = []; this.fps = 60; this.lastAdj = 0;
     this.setQuality(save.settings.quality < 0 ? defaultQuality() : save.settings.quality);
     addEventListener('resize', () => this.resize());
-    canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); this.lost = true; });
-    canvas.addEventListener('webglcontextrestored', () => { this.lost = false; location.reload(); });
+    const recover = () => { // GPU reset: drop quality one step and reload (max 3 times per session)
+      let n = 0; try { n = +sessionStorage.getItem('ff_lost') || 0; sessionStorage.setItem('ff_lost', n + 1); } catch (e) { }
+      save.settings.quality = Math.max(0, this.qi - 1); persist(); if (n < 3) location.reload();
+    };
+    canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); this.lost = true; this.lostTimer = setTimeout(recover, 1200); });
+    canvas.addEventListener('webglcontextrestored', () => { clearTimeout(this.lostTimer); this.lost = false; recover(); });
   }
   setQuality(i) {
     this.qi = clamp(i, 0, 4); this.Q = QUALITY[this.qi];

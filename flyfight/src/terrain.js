@@ -138,7 +138,7 @@ export class Terrain {
   maskAt(x, z, ch) { const Nm = this.Nm; const i = clamp(Math.round((x / this.size + 0.5) * (Nm - 1)), 0, Nm - 1), j = clamp(Math.round((z / this.size + 0.5) * (Nm - 1)), 0, Nm - 1); return this.mask[(j * Nm + i) * 4 + ch] / 255; }
 
   // ---------------- GPU resources ----------------
-  build() {
+  async build() {
     const r = this.engine.renderer, N = this.N, S = this.size, M = this.M, Q = this.Q;
     const hTex = new THREE.DataTexture(this.H, N, N, THREE.RedFormat, THREE.FloatType);
     hTex.minFilter = hTex.magFilter = THREE.NearestFilter; hTex.needsUpdate = true; this.hTex = hTex;
@@ -237,7 +237,13 @@ export class Terrain {
     });
     const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), bake); const sc = new THREE.Scene(); sc.add(quad);
     const cam = new THREE.Camera();
-    r.setRenderTarget(rt); r.render(sc, cam); r.setRenderTarget(null);
+    // bake in small tiles so a mobile GPU never hits the watchdog (context loss => black screen)
+    { const T = 256, gl = r.getContext(); rt.scissorTest = true; r.setRenderTarget(rt);
+      for (let y = 0; y < CM; y += T) for (let x = 0; x < CM; x += T) {
+        rt.scissor.set(x, y, Math.min(T, CM - x), Math.min(T, CM - y)); r.render(sc, cam);
+        gl.finish(); await new Promise(res => setTimeout(res, 0));
+      }
+      rt.scissorTest = false; r.setRenderTarget(null); }
     bake.dispose(); quad.geometry.dispose();
     this.colorRT = rt;
     this.buildClipmap();

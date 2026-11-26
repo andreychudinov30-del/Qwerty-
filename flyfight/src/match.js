@@ -90,7 +90,7 @@ export class Match {
     progress(0.15, 'Генерация рельефа...'); await wait();
     this.terrain = new Terrain(this.engine, M, Q).generate();
     progress(0.45, 'Текстуры местности...'); await wait();
-    this.terrain.build(); scene.add(this.terrain.group);
+    await this.terrain.build(); scene.add(this.terrain.group);
     if (this.terrain.rwLights) this.terrain.rwLights.visible = this.atm.night > 0.3;
     progress(0.6, 'Облака...'); await wait();
     this.clouds = new Clouds(W, Q, M.seed + this.timeId.length, M.size, this.atm.cols); scene.add(this.clouds.mesh);
