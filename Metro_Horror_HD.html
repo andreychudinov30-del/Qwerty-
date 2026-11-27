@@ -4519,7 +4519,7 @@ function render(){const q=Q[sv.q];
   MBlur.uniforms.t.value=b[0].texture;MBlur.uniforms.dir.value.set(1/b[0].width,0);fs(MBlur,b[1]);MBlur.uniforms.t.value=b[1].texture;MBlur.uniforms.dir.value.set(0,1/b[0].height);fs(MBlur,b[0]);
   MBlur.uniforms.t.value=b[0].texture;MBlur.uniforms.dir.value.set(2/b[2].width,0);fs(MBlur,b[2]);MBlur.uniforms.t.value=b[2].texture;MBlur.uniforms.dir.value.set(0,2/b[2].height);fs(MBlur,b[3]);
   U.tB1.value=b[0].texture;U.tB2.value=b[3].texture;U.bl.value=.75}else{U.tB1.value=U.tB2.value=PP.b[3].texture;U.bl.value=0}
- fs(MComp,null)}
+ gfxFinal()}
 
 /* ---------- canvas helpers & procedural textures ---------- */
 const cvs=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h||w;return c};
@@ -5074,10 +5074,10 @@ function panelGear(sub,note){const c=$('pc'),st=c.scrollTop;show('pn',1);c.datas
 const dress=(function(){
 const OF={G:{},M:{}};
 function og(t,a,b,c,d){const k=t+'|'+a+'|'+b+'|'+c+'|'+d;if(OF.G[k])return OF.G[k];let g;
- if(t==='b')g=new THREE.BoxGeometry(a,b,c);else if(t==='c')g=new THREE.CylinderGeometry(a,b,c,d||14);else if(t==='s')g=new THREE.SphereGeometry(a,14,10);
- else if(t==='h')g=new THREE.SphereGeometry(a,18,10,0,TAU,0,PI*(b||.5));else if(t==='t')g=new THREE.TorusGeometry(a,b,8,c||22);else if(t==='k')g=new THREE.CylinderGeometry(a,b,c,d||12,1,true);
+ if(t==='b')g=gRoundBox(a,b,c,Math.min(.012,Math.min(a,b,c)*.24),1);else if(t==='c')g=new THREE.CylinderGeometry(a,b,c,28);else if(t==='s')g=new THREE.SphereGeometry(a,24,16);
+ else if(t==='h')g=new THREE.SphereGeometry(a,32,16,0,TAU,0,PI*(b||.5));else if(t==='t')g=new THREE.TorusGeometry(a,b,12,c||40);else if(t==='k')g=new THREE.CylinderGeometry(a,b,c,d||12,1,true);
  return OF.G[k]=g}
-function om(c,r,m,e){const k=c+'|'+r+'|'+m+'|'+(e||0);if(OF.M[k])return OF.M[k];const x=new THREE.MeshStandardMaterial({roughness:r==null?.8:r,metalness:m||0,side:THREE.DoubleSide});x.color.setHex(c).convertSRGBToLinear();if(e){x.emissive.setHex(e).convertSRGBToLinear();x.emissiveIntensity=1.6}return OF.M[k]=x}
+function om(c,r,m,e){const k=c+'|'+r+'|'+m+'|'+(e||0);if(OF.M[k])return OF.M[k];const x=new THREE.MeshStandardMaterial({roughness:r==null?.8:r,metalness:m||0,side:THREE.DoubleSide});x.color.setHex(c).convertSRGBToLinear();if(!e){const kd=(m||0)>.5?'knurl':(r==null?.8:r)>=.85?'cloth':'leather';x.normalMap=gtex(kd);x.normalScale.set(kd==='cloth'?.8:.45,kd==='cloth'?.8:.45)}x.envMapIntensity=.7;if(e){x.emissive.setHex(e).convertSRGBToLinear();x.emissiveIntensity=1.6}return OF.M[k]=x}
 function mesh(fr,g,m,p,r,s,cs){const o=new THREE.Mesh(g,m);o.position.set(p[0],p[1],p[2]);if(r)o.rotation.set(r[0],r[1],r[2]);if(s)o.scale.set(s[0],s[1],s[2]);o.castShadow=cs!==0;fr.add(o);return o}
 const BX=(fr,m,w,h,d,p,r)=>mesh(fr,og('b',w,h,d),m,p,r),CY=(fr,m,rt,rb,h,p,r,s)=>mesh(fr,og('c',rt,rb,h,14),m,p,r,s),SP=(fr,m,rad,p,s,r)=>mesh(fr,og('s',rad),m,p,r,s),DM=(fr,m,rad,fr2,p,r,s)=>mesh(fr,og('h',rad,fr2),m,p,r,s),TR=(fr,m,rad,t,p,r,s)=>mesh(fr,og('t',rad,t),m,p,r,s);
 const LC={cv:0x4a4f3a,lea:0x3a2a1c,blk:0x15171a,gry:0x30343a,rub:0x101112,met:0x8a929a,ref:0xaab2b6,red:0x9a1c14,ye:0xcaa616,or:0xdc6818,wh:0xa8a8a2,gd:0xc8a040};
@@ -5220,6 +5220,111 @@ return dress})();
 /* partner avatar: show same outfit without touching net code */
 const _mkRemote0=makeRemote;
 makeRemote=function(){_mkRemote0.apply(this,arguments);try{if(NET.av&&NET.av.m){const p=partner();dress(NET.av.m,(p&&p.skin|0)||0)}}catch(e){}};
+
+/* =====================================================================
+   ГРАФИКА+: сглаживание FXAA с адаптивной резкостью, профильные рельсы,
+   скруглённые шпалы, новая модель руки в перчатке и фонаря.
+   Игровая логика здесь не меняется: только то, что видно на экране.
+   ===================================================================== */
+/* --- FXAA 3.11 (качество "консоль") + контрастно-адаптивная резкость; работает после тонмаппинга --- */
+const MFX=sm(`uniform sampler2D t;uniform vec2 px;uniform float sh;varying vec2 vUv;
+float L(vec3 c){return dot(c,vec3(.299,.587,.114));}
+void main(){vec3 cM=texture2D(t,vUv).rgb;
+vec3 cNW=texture2D(t,vUv+vec2(-1.,-1.)*px).rgb,cNE=texture2D(t,vUv+vec2(1.,-1.)*px).rgb,cSW=texture2D(t,vUv+vec2(-1.,1.)*px).rgb,cSE=texture2D(t,vUv+vec2(1.,1.)*px).rgb;
+float lNW=L(cNW),lNE=L(cNE),lSW=L(cSW),lSE=L(cSE),lM=L(cM);
+float lMin=min(lM,min(min(lNW,lNE),min(lSW,lSE))),lMax=max(lM,max(max(lNW,lNE),max(lSW,lSE)));
+vec2 dir=vec2(-((lNW+lNE)-(lSW+lSE)),(lNW+lSW)-(lNE+lSE));
+float dr=max((lNW+lNE+lSW+lSE)*.03125,.0078125);float rc=1./(min(abs(dir.x),abs(dir.y))+dr);dir=clamp(dir*rc,-8.,8.)*px;
+vec3 A=.5*(texture2D(t,vUv+dir*(-1./6.)).rgb+texture2D(t,vUv+dir*(1./6.)).rgb);
+vec3 B=A*.5+.25*(texture2D(t,vUv-dir*.5).rgb+texture2D(t,vUv+dir*.5).rgb);
+float lB=L(B);vec3 c=(lB<lMin||lB>lMax)?A:B;
+vec3 nb=(cNW+cNE+cSW+cSE)*.25;float amt=sh*(1.-smoothstep(0.,.3,lMax-lMin));c=clamp(c+(c-nb)*amt,0.,1.);
+gl_FragColor=vec4(c,1.);}`,{t:{value:null},px:{value:new THREE.Vector2()},sh:{value:.3}});
+const _ppSetup0=ppSetup;ppSetup=function(){_ppSetup0();PP.ldr=new THREE.WebGLRenderTarget(4,4,{minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,depthBuffer:false})};
+const _ppSize0=ppSize;ppSize=function(){_ppSize0();if(PP.ldr&&PP.main)PP.ldr.setSize(PP.main.width,PP.main.height)};
+const gfxAA=()=>!!PP.ldr&&(sv.q>=2||!touch);
+function gfxFinal(){if(gfxAA()){fs(MComp,PP.ldr);MFX.uniforms.t.value=PP.ldr.texture;MFX.uniforms.px.value.set(1/PP.ldr.width,1/PP.ldr.height);fs(MFX,null)}else fs(MComp,null)}
+
+/* --- общие процедурные текстуры: ткань, кожа, рифление металла (tangent-space normal maps) --- */
+const GTX={};
+function gtex(kind){if(GTX[kind])return GTX[kind];const s=256,c=cvs(s),g=c.getContext('2d'),im=g.createImageData(s,s),D=im.data,r=RNG(kind.length*131+7);
+ const nz=noiseCanvas(s,4,kind.length*17+3).getContext('2d').getImageData(0,0,s,s).data;
+ for(let y=0;y<s;y++)for(let x=0;x<s;x++){const i=(y*s+x)*4,n=nz[i]/255;let v;
+  if(kind==='cloth'){const a=Math.sin(x/s*TAU*48),b=Math.sin(y/s*TAU*48),w=((x>>2)+(y>>2))&1;v=.5+(w?a:b)*.22+(n-.5)*.35}
+  else if(kind==='leather'){v=.5+(n-.5)*.9+(r()-.5)*.08}
+  else if(kind==='knurl'){const a=Math.abs(Math.sin((x+y)/s*TAU*24)),b=Math.abs(Math.sin((x-y)/s*TAU*24));v=.3+.5*Math.min(a,b)+(n-.5)*.15}
+  else v=.5+(n-.5)*.5+Math.sin(y/s*TAU*90)*.04;
+  const q=clamp(v,0,1)*255;D[i]=D[i+1]=D[i+2]=q;D[i+3]=255}
+ g.putImageData(im,0,0);const t=ctex(h2n(c,kind==='leather'?3.2:kind==='knurl'?4:2.4),0,1);return GTX[kind]=t}
+
+/* --- рельс с настоящим профилем (подошва, шейка, головка) и шпалы со скруглёнными гранями --- */
+function gUVbox(g,k){const p=g.attributes.position,n=g.attributes.normal,u=new Float32Array(p.count*2);
+ for(let i=0;i<p.count;i++){const ax=Math.abs(n.getX(i)),ay=Math.abs(n.getY(i)),az=Math.abs(n.getZ(i));let a,b;
+  if(ay>=ax&&ay>=az){a=p.getX(i);b=p.getZ(i)}else if(ax>=az){a=p.getZ(i);b=p.getY(i)}else{a=p.getX(i);b=p.getY(i)}u[i*2]=a*k;u[i*2+1]=b*k}
+ g.setAttribute('uv',new THREE.BufferAttribute(u,2));g.setAttribute('uv2',g.attributes.uv);return g}
+function gRoundBox(w,h,d,rad,seg){seg=seg*2+1;rad=Math.min(w/2,h/2,d/2,rad);const g0=new THREE.BoxGeometry(1,1,1,seg,seg,seg),g=g0.toNonIndexed();g0.dispose();
+ const P=g.attributes.position.array,N=g.attributes.normal.array,bx=new THREE.Vector3(w,h,d).divideScalar(2).subScalar(rad),v=new THREE.Vector3,n=new THREE.Vector3,hs=.5/seg;
+ for(let j=0;j<P.length;j+=3){v.fromArray(P,j);n.copy(v);n.x-=Math.sign(n.x)*hs;n.y-=Math.sign(n.y)*hs;n.z-=Math.sign(n.z)*hs;n.normalize();
+  P[j]=bx.x*Math.sign(v.x)+n.x*rad;P[j+1]=bx.y*Math.sign(v.y)+n.y*rad;P[j+2]=bx.z*Math.sign(v.z)+n.z*rad;N[j]=n.x;N[j+1]=n.y;N[j+2]=n.z}
+ g.attributes.position.needsUpdate=true;return g}
+(function(){const s=new THREE.Shape(),pf=[[-.07,-.08],[.07,-.08],[.07,-.07],[.024,-.058],[.012,-.044],[.0105,.026],[.033,.036],[.037,.07],[.032,.08],[-.032,.08],[-.037,.07],[-.033,.036],[-.0105,.026],[-.012,-.044],[-.024,-.058],[-.07,-.07]];
+ s.moveTo(pf[0][0],pf[0][1]);for(let i=1;i<pf.length;i++)s.lineTo(pf[i][0],pf[i][1]);
+ const r=new THREE.ExtrudeGeometry(s,{depth:1,bevelEnabled:false,steps:1});r.translate(0,0,-.5);r.computeVertexNormals();gUVbox(r,.5);
+ const sl=gRoundBox(2.4,.12,.26,.025,1);gDef(sl,.004,9,5);gUVbox(sl,.5);
+ /* детальная геометрия только на «Высокой»/«Ультра»; на слабых настройках — исходные коробки */
+ const r0=GEO.rail,s0=GEO.sleeper;delete GEO.rail;delete GEO.sleeper;
+ Object.defineProperty(GEO,'rail',{get:()=>sv.q>=2?r:r0,enumerable:true});Object.defineProperty(GEO,'sleeper',{get:()=>sv.q>=2?sl:s0,enumerable:true})})();
+
+/* --- рука в перчатке и фонарь (модель «vintage flashlight», Poly Haven CC0, уже встроена в игру) --- */
+function gDef(g,amp,f,seed){const p=g.attributes.position,n=g.attributes.normal;for(let i=0;i<p.count;i++){const x=p.getX(i),y=p.getY(i),z=p.getZ(i),d=amp*n3(x*f,y*f,z*f,seed);p.setXYZ(i,x+n.getX(i)*d,y+n.getY(i)*d,z+n.getZ(i)*d)}p.needsUpdate=true;return g}
+function gCaps(a,b,r,m,par){const d=new THREE.Vector3().subVectors(b,a),L=d.length(),c=new THREE.Mesh(new THREE.CylinderGeometry(r,r*1.04,L,14,1,true),m);
+ c.position.copy(a).addScaledVector(d,.5);c.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize());par.add(c);
+ const s=new THREE.Mesh(new THREE.SphereGeometry(r*1.04,14,10),m);s.position.copy(b);par.add(s);return c}
+buildHands=function(){HAND.clear();
+ const glove=new THREE.MeshStandardMaterial({color:0x2a2119,roughness:.58,normalMap:gtex('leather'),normalScale:new THREE.Vector2(.6,.6)}),
+  glove2=new THREE.MeshStandardMaterial({color:0x17130f,roughness:.7,normalMap:gtex('leather'),normalScale:new THREE.Vector2(.5,.5)}),
+  sleeve=new THREE.MeshStandardMaterial({color:0x1c2018,roughness:.95,normalMap:gtex('cloth'),normalScale:new THREE.Vector2(.9,.9)}),
+  met=new THREE.MeshStandardMaterial({color:0x22242a,roughness:.32,metalness:.9,normalMap:gtex('knurl'),normalScale:new THREE.Vector2(.5,.5)}),
+  rub=new THREE.MeshStandardMaterial({color:0x050506,roughness:.9,envMapIntensity:.25,normalMap:gtex('knurl'),normalScale:new THREE.Vector2(.6,.6)}),
+  chrome=new THREE.MeshStandardMaterial({color:0xb8bcc2,roughness:.12,metalness:1});
+ [sleeve.normalMap,met.normalMap].forEach(t=>t.repeat.set(3,3));glove.color.setHex(0x3a3028).convertSRGBToLinear();glove2.color.setHex(0x221c17).convertSRGBToLinear();sleeve.color.setHex(0x2e3428).convertSRGBToLinear();glove.roughness=.62;
+ /* фонарь: фотоскан-модель, если есть; иначе — детализированная процедурная */
+ let R0=.022,zHead=-.166,lensR=.029;const FL=new THREE.Group;HAND.add(FL);
+ const md=null;
+ if(md){const box=new THREE.Box3;for(const p of md.parts){p.g.computeBoundingBox();box.union(p.g.boundingBox)}const sz=box.getSize(new THREE.Vector3()),ctr=box.getCenter(new THREE.Vector3());
+  const ax=sz.x>=sz.y&&sz.x>=sz.z?'x':sz.y>=sz.z?'y':'z',len=sz[ax];
+  /* какой конец толще — там голова с линзой */
+  let e0=0,e1=0;const lo=box.min[ax],o=['x','y','z'].filter(q=>q!==ax);
+  for(const p of md.parts){const P=p.g.attributes.position;for(let i=0;i<P.count;i+=3){const v=[P.getX(i),P.getY(i),P.getZ(i)],k={x:0,y:1,z:2},tt=(v[k[ax]]-lo)/len,rr=Math.hypot(v[k[o[0]]]-ctr[o[0]],v[k[o[1]]]-ctr[o[1]]);if(tt<.12)e0=Math.max(e0,rr);else if(tt>.88)e1=Math.max(e1,rr)}}
+  const k=.235/len,inner=new THREE.Group;for(const p of md.parts){const m=new THREE.Mesh(p.g,p.m);m.position.set(-ctr.x,-ctr.y,-ctr.z);inner.add(m)}
+  inner.scale.setScalar(k);const head1=e1>e0;
+  if(ax==='x')inner.rotation.y=head1?PI/2:-PI/2;else if(ax==='y')inner.rotation.x=head1?-PI/2:PI/2;else if(head1)inner.rotation.y=PI;
+  FL.add(inner);FL.position.z=-.05;zHead=-.05-.1175;lensR=Math.max(e0,e1)*k*.82;R0=Math.min(e0,e1)*k*1.05||.022}
+ else{const add=(g,m,z)=>{const o=new THREE.Mesh(g,m);o.rotation.x=PI/2;o.position.z=z;FL.add(o);return o};
+  add(new THREE.CylinderGeometry(.021,.021,.17,32),met,-.02);add(new THREE.CylinderGeometry(.0228,.0228,.075,32),rub,.03);add(new THREE.CylinderGeometry(.023,.034,.06,32),met,-.135);
+  add(new THREE.CylinderGeometry(.034,.034,.012,32),met,-.16);add(new THREE.CylinderGeometry(.0225,.021,.02,32),met,.072);
+  const rf=new THREE.Mesh(new THREE.CylinderGeometry(.03,.012,.03,32,1,true),chrome);rf.rotation.x=-PI/2;rf.position.z=-.15;FL.add(rf);
+  const sw=new THREE.Mesh(gRoundBox(.012,.008,.022,.003,1),rub);sw.position.set(0,.023,-.03);FL.add(sw)}
+ const lens=new THREE.Mesh(new THREE.CircleGeometry(lensR,32),new THREE.MeshBasicMaterial({color:0xfff3d8}));lens.rotation.y=PI;lens.position.z=zHead-.001;HAND.add(lens);HAND.userData.lens=lens;
+ /* пальцы обхватывают корпус по дуге: ладонь справа-снизу, кончики выходят слева-сверху */
+ const RR=R0+.0105,F=[[-.014,.0108,1.0],[.008,.0114,1.04],[.029,.0108,.98],[.048,.0094,.86]];
+ const pt=(a,rr,z)=>new THREE.Vector3(Math.cos(a)*rr,Math.sin(a)*rr,z);
+ for(const[z,fr,ln]of F){const a0=-.55,a1=a0-1.25*ln,a2=a1-.95*ln,a3=a2-.7*ln;const p0=pt(a0,RR+.012,z+.004),p1=pt(a1,RR,z),p2=pt(a2,RR-.0005,z-.002),p3=pt(a3,RR-.002,z-.004);
+  gCaps(p0,p1,fr,glove,HAND);gCaps(p1,p2,fr*.93,glove,HAND);gCaps(p2,p3,fr*.86,glove,HAND);
+  const kn=new THREE.Mesh(new THREE.SphereGeometry(fr*1.25,14,10),glove2);kn.position.copy(p0);kn.scale.set(1,1,.9);HAND.add(kn)}
+ /* ладонь и тыльная сторона кисти */
+ const palm=new THREE.Mesh(gDef(gRoundBox(.032,.07,.088,.014,3),.0025,40,3),glove);palm.position.set(R0+.014,.004,.024);palm.rotation.set(0,0,.62);HAND.add(palm);
+ const back=new THREE.Mesh(gRoundBox(.008,.05,.06,.003,1),glove2);back.position.set(R0+.026,.02,.02);back.rotation.z=.62;HAND.add(back);
+ /* большой палец сверху справа, давит на кнопку */
+ const t0=new THREE.Vector3(R0+.02,.024,.05),t1=new THREE.Vector3(R0*.6,R0+.012,.022),t2=new THREE.Vector3(-.002,R0+.011,-.008);
+ gCaps(t0,t1,.0118,glove,HAND);gCaps(t1,t2,.0105,glove,HAND);
+ /* запястье, манжета с ремешком, рукав со складками */
+ const wr=new THREE.Mesh(new THREE.CylinderGeometry(.027,.031,.05,20),glove);wr.rotation.x=PI/2;wr.position.set(R0+.016,-.012,.085);HAND.add(wr);
+ const cuff=new THREE.Mesh(deform(new THREE.CylinderGeometry(.036,.04,.05,24,3),.002,60,4),glove2);cuff.rotation.x=PI/2;cuff.position.set(R0+.014,-.018,.115);HAND.add(cuff);
+ const strap=new THREE.Mesh(gRoundBox(.012,.016,.05,.004,1),glove2);strap.position.set(R0+.052,-.012,.115);HAND.add(strap);
+ const sl=new THREE.Mesh(deform(new THREE.CylinderGeometry(.045,.054,.34,28,12),.006,14,6),sleeve);sl.rotation.x=PI/2;sl.position.set(R0+.008,-.04,.3);HAND.add(sl);
+ for(let i=0;i<4;i++){const f=new THREE.Mesh(new THREE.TorusGeometry(.047+i*.0025,.0045,8,28),sleeve);f.position.set(R0+.008,-.032-i*.004,.16+i*.045);f.scale.set(1,1,.6);HAND.add(f)}
+ HAND.traverse(o=>{if(o.isMesh){o.renderOrder=5;o.castShadow=false}});HAND.position.set(.2,-.2,-.38);cam.add(HAND)};
 
 /* ---------- audio: reverb, 3D monster voice, whispers, procedural sfx ---------- */
 let AC=null;const AU={};
