@@ -4447,14 +4447,16 @@ const SK=[{n:'Сталкер',c:0,a:0x6f7a52,h:0},{n:'Диггер',c:100,a:0xc8
 const Q=[{n:'Низкая',pr:1,sh:0,post:0,ao:0,bl:0,du:300,tx:256,pl:3,vol:0,far:30},
 {n:'Средняя',pr:1.35,sh:512,post:1,ao:0,bl:1,du:800,tx:512,pl:4,vol:1,far:40},
 {n:'Высокая',pr:1.8,sh:1024,post:1,ao:8,bl:1,du:1400,tx:1024,pl:6,vol:1,far:52},
-{n:'Ультра',pr:1.75,sh:touch?1024:2048,post:1,ao:12,bl:1,du:2000,tx:1024,pl:7,vol:1,far:64,mp:touch?2.2e6:3.6e6}];
+{n:'Ультра',pr:2.5,sh:2048,post:1,ao:14,bl:1,du:2200,tx:1024,pl:8,vol:1,far:64,mp:touch?4e6:6e6}];
 sv.q=clamp(sv.q|0,0,3);
+try{if(sv.q===3&&localStorage.getItem('mh_ult')==='1'){sv.q=2;put();localStorage.removeItem('mh_ult')}}catch(e){}
+addEventListener('pagehide',()=>{try{localStorage.removeItem('mh_ult')}catch(e){}});
 
 /* ---------- renderer & scene ---------- */
 const R=new THREE.WebGLRenderer({antialias:false,powerPreference:'high-performance',stencil:false});
 R.shadowMap.enabled=true;R.shadowMap.type=THREE.PCFSoftShadowMap;R.shadowMap.autoUpdate=true;
 document.body.prepend(R.domElement);
-R.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();msg('Графический контекст потерян. Перезагрузи страницу.')});
+R.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();if(sv.q===3){sv.q=2;put()}try{localStorage.removeItem('mh_ult')}catch(_){}msg('Графический контекст потерян. Перезагрузи страницу.')});
 const S=new THREE.Scene();S.background=new THREE.Color(0x04060a);S.fog=new THREE.FogExp2(0x0b121a,.03);
 const cam=new THREE.PerspectiveCamera(72,1,.08,70);cam.rotation.order='YXZ';S.add(cam);
 const MAXANI=Math.min(8,R.capabilities.getMaxAnisotropy());
@@ -6270,10 +6272,11 @@ function resize(){const q=Q[sv.q];let _pr=Math.min(devicePixelRatio||1,q.pr);if(
  if(dust)dust.material.uniforms.pr.value=R.getPixelRatio();applyLayout()}
 function applyQ(){const q=Q[sv.q];fl.castShadow=q.sh>0;if(q.sh){fl.shadow.mapSize.set(q.sh,q.sh);if(fl.shadow.map){fl.shadow.map.dispose();fl.shadow.map=null}}fl.shadow.camera.near=.2;fl.shadow.camera.far=30;fl.shadow.bias=-.0005;
  R.toneMapping=q.post?THREE.NoToneMapping:THREE.ACESFilmicToneMapping;R.toneMappingExposure=1.3;R.outputEncoding=q.post?THREE.LinearEncoding:THREE.sRGBEncoding;
- if(IMG._tx!==q.tx){IMG._tx=q.tx;buildWorldTex(q.tx)}lightPool(q.pl);dust.geometry.setDrawRange(0,q.du);dust.visible=q.du>0;dyn=1;resize();
+ if(IMG._tx!==q.tx){IMG._tx=q.tx;buildWorldTex(q.tx)}lightPool(q.pl);dust.geometry.setDrawRange(0,q.du);dust.visible=q.du>0;dyn=q.mp?.6:1;resize();
+ try{if(sv.q===3){localStorage.setItem('mh_ult','1');setTimeout(()=>{try{if(sv.q===3)localStorage.removeItem('mh_ult')}catch(e){}},25000)}else localStorage.removeItem('mh_ult')}catch(e){}
  S.traverse(o=>{if(o.material){(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>m.needsUpdate=true)}})}
 function adapt(dt){if(mode!=='play')return;ftAcc+=dt;ftN++;ftT+=dt;if(ftT<2.5)return;const avg=ftAcc/ftN;ftAcc=ftN=ftT=0;
- if(avg>.026&&dyn>.55){dyn=Math.max(.55,dyn*.85);resize()}else if(avg<.0155&&dyn<1){dyn=Math.min(1,dyn*1.1);resize()}}
+ const mn=Q[sv.q].mp?.4:.55;if(avg>.026&&dyn>mn){dyn=Math.max(mn,dyn*.8);resize()}else if(avg<.0155&&dyn<1){dyn=Math.min(1,dyn*1.12);resize()}}
 addEventListener('resize',resize);
 
 /* ---------- touch layout editor ---------- */
